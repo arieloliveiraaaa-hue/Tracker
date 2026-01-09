@@ -8,15 +8,15 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS REFINADO (TÍTULOS E CONTRASTE)
+# DESIGN PREMIUM - CSS FORÇADO (CORREÇÃO DE TAMANHO E COR)
 # =========================================================
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
-        /* Fundo da Página */
+        /* Fundo Total Negro */
         .stApp {
-            background-color: #000000;
+            background-color: #000000 !important;
         }
 
         header, footer, #MainMenu {visibility: hidden;}
@@ -26,82 +26,79 @@ st.markdown("""
             padding: 3rem 5rem !important;
         }
 
-        /* TÍTULO PRINCIPAL - Aumentado e com mais peso */
+        /* TÍTULO PRINCIPAL - FORÇADO PARA FICAR GIGANTE */
         .main-title {
-            font-family: 'Inter', sans-serif;
-            font-size: 64px; /* Aumentado para destaque total */
-            font-weight: 900;
-            color: #FFFFFF;
-            letter-spacing: -3px;
-            margin-bottom: 0px;
-            line-height: 1.1;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 80px !important; /* Aumentado drasticamente */
+            font-weight: 900 !important;
+            color: #FFFFFF !important;
+            letter-spacing: -4px !important;
+            margin-bottom: 0px !important;
+            line-height: 1 !important;
+            display: block !important;
         }
 
-        /* TERMINAL DE DADOS - Mantido menor para contraste de hierarquia */
+        /* TERMINAL DE DADOS - DESCRIÇÃO */
         .sub-header {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            color: #555;
-            margin-top: 5px;
-            margin-bottom: 50px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 16px !important;
+            color: #444 !important; /* Tom de cinza para não brigar com o título */
+            margin-top: 10px !important;
+            margin-bottom: 60px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 5px !important;
+            display: block !important;
         }
 
-        /* ESTILIZAÇÃO DA TABELA */
+        /* ESTILIZAÇÃO DA TABELA HTML */
         table {
-            width: 100%;
-            border-collapse: collapse;
+            width: 100% !important;
+            border-collapse: collapse !important;
             background-color: #000000 !important;
-            color: #D1D1D1;
-            font-family: 'Inter', sans-serif;
             border: none !important;
         }
 
-        /* TÍTULOS DAS COLUNAS - Corrigido para não ficar apagado */
+        /* CABEÇALHOS - AGORA BRANCOS E VISÍVEIS */
         th {
             background-color: #000000 !important;
-            color: #EEEEEE !important; /* Branco com alto contraste */
-            font-size: 13px !important;
+            color: #FFFFFF !important; /* Branco puro para os títulos das colunas */
+            font-size: 14px !important;
             font-weight: 700 !important;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            padding: 20px 15px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1.5px !important;
+            padding: 25px 15px !important;
             text-align: right !important;
-            border-bottom: 2px solid #222 !important;
+            border-bottom: 2px solid #333 !important; /* Linha de divisão mais clara */
+            font-family: 'Inter', sans-serif !important;
         }
 
         th:first-child, td:first-child { text-align: left !important; }
 
         td {
-            padding: 20px 15px !important;
+            padding: 22px 15px !important;
             border-bottom: 1px solid #111 !important;
-            font-size: 16px;
+            font-size: 17px !important;
             background-color: #000000 !important;
+            color: #D1D1D1 !important;
+            font-family: 'Inter', sans-serif !important;
         }
 
-        /* Efeito de Zebra sutil */
+        /* Zebra sutil */
         tr:nth-child(even) td {
-            background-color: #070707 !important;
+            background-color: #050505 !important;
         }
 
-        /* DESTAQUES */
+        /* DESTAQUES DE TEXTO */
         .ticker-style {
-            font-weight: 800 !important;
+            font-weight: 900 !important;
             color: #FFFFFF !important;
-            font-size: 18px !important;
+            font-size: 20px !important;
         }
 
         .price-target-style {
-            font-weight: 700 !important;
-            color: #FFFFFF !important; /* Mais destaque para o Alvo */
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .price-current-style {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 500;
-            color: #CCC;
+            font-weight: 800 !important;
+            color: #FFFFFF !important;
+            font-family: 'JetBrains Mono', monospace !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -156,17 +153,11 @@ def get_stock_data(tickers):
                 except: return 0.0
 
             data_list.append({
-                "Ticker": ticker,
-                "Moeda": simbolo,
-                "Preço": price_current,
-                "Recomendação": dados_manuais["Rec"],
-                "Preço-Alvo": preco_alvo,
-                "Upside": upside,
-                "Hoje %": ((price_current / price_prev_close) - 1) * 100,
-                "30 Dias %": calculate_pct(days_ago=30),
-                "6 Meses %": calculate_pct(days_ago=180),
-                "12 Meses %": calculate_pct(days_ago=365),
-                "YTD %": calculate_pct(is_ytd=True),
+                "Ticker": ticker, "Moeda": simbolo, "Preço": price_current,
+                "Recomendação": dados_manuais["Rec"], "Preço-Alvo": preco_alvo,
+                "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
+                "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
+                "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
                 "5 Anos %": calculate_pct(days_ago=1825),
                 "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000,
                 "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info.get('marketCap') else 0
@@ -175,11 +166,12 @@ def get_stock_data(tickers):
     return pd.DataFrame(data_list)
 
 # =========================================================
-# RENDERIZAÇÃO
+# RENDERIZAÇÃO FINAL
 # =========================================================
 
-st.markdown('<p class="main-title">EQUITY MONITOR</p>', unsafe_allow_html=True)
-st.markdown(f'<p class="sub-header">Terminal de Dados • {datetime.now().strftime("%d %b %Y | %H:%M:%S")} • B3 Real-time Stream</p>', unsafe_allow_html=True)
+# Título com classe específica para garantir o tamanho
+st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
+st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")} • B3 REAL-TIME</span>', unsafe_allow_html=True)
 
 lista_tickers = list(MINHA_COBERTURA.keys())
 df = get_stock_data(lista_tickers)
@@ -187,16 +179,15 @@ df = get_stock_data(lista_tickers)
 if not df.empty:
     df_view = pd.DataFrame()
     
-    # Destaques visuais via HTML
+    # Injeção de tags HTML para os estilos definidos no CSS acima
     df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-    df_view["Preço"] = df.apply(lambda r: f'<span class="price-current-style">{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
+    df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
     df_view["Recomendação"] = df["Recomendação"]
     df_view["Preço-Alvo"] = df.apply(lambda r: f'<span class="price-target-style">{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
 
-    # Lógica de cores
     def color_pct(val, is_upside=False):
-        color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#666"
-        weight = "700" if (is_upside or abs(val) > 10) else "400"
+        color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
+        weight = "700" if is_upside else "500"
         return f'<span style="color: {color}; font-weight: {weight}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
 
     df_view["Upside"] = df["Upside"].apply(lambda x: color_pct(x, True))
@@ -210,7 +201,7 @@ if not df.empty:
     df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
     df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
 
-    # Renderização final
+    # Renderização da tabela via HTML puro para controle absoluto do estilo
     st.write(df_view.to_html(escape=False, index=False), unsafe_allow_html=True)
     
     time.sleep(refresh_interval)
