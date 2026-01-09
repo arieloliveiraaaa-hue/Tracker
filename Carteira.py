@@ -8,11 +8,11 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS ULTRA CUSTOMIZADO
+# DESIGN PREMIUM - CSS REFINADO (TÍTULOS E CONTRASTE)
 # =========================================================
 st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
         /* Fundo da Página */
         .stApp {
@@ -26,27 +26,29 @@ st.markdown("""
             padding: 3rem 5rem !important;
         }
 
-        /* TÍTULO E SUBTÍTULO - Correção de Hierarquia */
+        /* TÍTULO PRINCIPAL - Aumentado e com mais peso */
         .main-title {
             font-family: 'Inter', sans-serif;
-            font-size: 52px; /* Título bem grande e imponente */
-            font-weight: 800;
+            font-size: 64px; /* Aumentado para destaque total */
+            font-weight: 900;
             color: #FFFFFF;
-            letter-spacing: -2px;
-            margin-bottom: 5px;
-            line-height: 1;
+            letter-spacing: -3px;
+            margin-bottom: 0px;
+            line-height: 1.1;
         }
 
+        /* TERMINAL DE DADOS - Mantido menor para contraste de hierarquia */
         .sub-header {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px; /* Descrição menor que o título */
-            color: #666;
-            margin-bottom: 40px;
+            font-size: 14px;
+            color: #555;
+            margin-top: 5px;
+            margin-bottom: 50px;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
         }
 
-        /* ESTILIZAÇÃO DA TABELA (Substituindo o dataframe por table para controle total) */
+        /* ESTILIZAÇÃO DA TABELA */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -56,47 +58,50 @@ st.markdown("""
             border: none !important;
         }
 
+        /* TÍTULOS DAS COLUNAS - Corrigido para não ficar apagado */
         th {
             background-color: #000000 !important;
-            color: #444 !important;
-            font-size: 12px !important;
+            color: #EEEEEE !important; /* Branco com alto contraste */
+            font-size: 13px !important;
+            font-weight: 700 !important;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 15px !important;
+            letter-spacing: 1.5px;
+            padding: 20px 15px !important;
             text-align: right !important;
-            border-bottom: 2px solid #1A1A1A !important;
+            border-bottom: 2px solid #222 !important;
         }
 
         th:first-child, td:first-child { text-align: left !important; }
 
         td {
-            padding: 18px 15px !important;
+            padding: 20px 15px !important;
             border-bottom: 1px solid #111 !important;
-            font-size: 15px;
+            font-size: 16px;
             background-color: #000000 !important;
         }
 
-        /* Efeito de Zebra nas linhas */
+        /* Efeito de Zebra sutil */
         tr:nth-child(even) td {
-            background-color: #080808 !important;
+            background-color: #070707 !important;
         }
 
-        /* DESTAQUES SOLICITADOS */
+        /* DESTAQUES */
         .ticker-style {
             font-weight: 800 !important;
             color: #FFFFFF !important;
-            font-size: 17px !important;
+            font-size: 18px !important;
         }
 
         .price-target-style {
             font-weight: 700 !important;
-            color: #BBBBBB !important;
+            color: #FFFFFF !important; /* Mais destaque para o Alvo */
             font-family: 'JetBrains Mono', monospace;
         }
 
         .price-current-style {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 500;
+            color: #CCC;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -180,19 +185,18 @@ lista_tickers = list(MINHA_COBERTURA.keys())
 df = get_stock_data(lista_tickers)
 
 if not df.empty:
-    # Preparando os dados com tags HTML para destaques de fonte
     df_view = pd.DataFrame()
     
-    # Aplicação de estilos via HTML nas colunas desejadas
+    # Destaques visuais via HTML
     df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
     df_view["Preço"] = df.apply(lambda r: f'<span class="price-current-style">{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
     df_view["Recomendação"] = df["Recomendação"]
     df_view["Preço-Alvo"] = df.apply(lambda r: f'<span class="price-target-style">{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
 
-    # Lógica de cores para porcentagens (injeta cor via HTML diretamente no valor)
+    # Lógica de cores
     def color_pct(val, is_upside=False):
         color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#666"
-        weight = "700" if is_upside else "400"
+        weight = "700" if (is_upside or abs(val) > 10) else "400"
         return f'<span style="color: {color}; font-weight: {weight}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
 
     df_view["Upside"] = df["Upside"].apply(lambda x: color_pct(x, True))
@@ -206,7 +210,7 @@ if not df.empty:
     df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
     df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
 
-    # Renderizando a tabela como HTML para controle total do CSS
+    # Renderização final
     st.write(df_view.to_html(escape=False, index=False), unsafe_allow_html=True)
     
     time.sleep(refresh_interval)
