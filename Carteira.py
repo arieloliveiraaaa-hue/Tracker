@@ -4,75 +4,65 @@ import pandas as pd
 from datetime import datetime, timedelta
 import time
 
-# Mantendo configuração original
-st.set_page_config(page_title="Monitor de Ações", layout="wide")
+# Configuração da página (Wide layout)
+st.set_page_config(page_title="Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# CSS CUSTOMIZADO (MODERNIZAÇÃO & MOBILE FRIENDLY)
+# ESTILIZAÇÃO CSS (VISUAL DARK / CLEAN / INVESTIMENTO)
 # =========================================================
 st.markdown("""
-<style>
-    /* Importando fonte estilo 'Bloomberg Terminal' / Moderna */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-    /* Fundo geral escuro e fontes */
-    .stApp {
-        background-color: #0e1117;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    /* Remove padding excessivo do topo */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-
-    /* Estilização do Grid de Cards */
-    .stock-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 15px;
-        margin-bottom: 30px;
-    }
-
-    /* Card individual */
-    .stock-card {
-        background-color: #1c1c1c;
-        border: 1px solid #333;
-        border-radius: 8px;
-        padding: 15px;
-        color: white;
-        transition: transform 0.2s;
-    }
-    .stock-card:hover {
-        border-color: #555;
-    }
-
-    /* Tipografia dentro do card */
-    .card-ticker { font-size: 1.2rem; font-weight: 700; color: #e0e0e0; }
-    .card-price { font-size: 1.5rem; font-weight: 600; margin: 5px 0; }
-    .card-meta { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; margin-top: 8px;}
-    
-    /* Cores de variação */
-    .positive { color: #00ff7f; } /* Verde neon */
-    .negative { color: #ff4b4b; } /* Vermelho neon */
-    .neutral  { color: #b0b0b0; }
-
-    /* Esconde elementos padrão do Streamlit que poluem o visual */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Melhoria visual da tabela */
-    [data-testid="stDataFrame"] {
-        border: 1px solid #333;
-        border-radius: 5px;
-    }
-</style>
+    <style>
+        /* Fundo Preto Absoluto */
+        .stApp {
+            background-color: #000000;
+        }
+        
+        /* Ajuste do Header para sumir ou ficar transparente */
+        header[data-testid="stHeader"] {
+            background-color: transparent;
+            visibility: hidden;
+        }
+        
+        /* Títulos e Textos */
+        h1, h2, h3, p, div, span {
+            color: #E0E0E0 !important;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        /* Estilização da Tabela (DataFrame) */
+        .stDataFrame {
+            border: 1px solid #333;
+        }
+        
+        /* Remove padding excessivo do topo */
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        
+        /* Customização do título principal */
+        .main-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 5px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .update-tag {
+            font-size: 14px;
+            color: #666;
+            font-family: monospace;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# DADOS (MANTIDOS)
+# DADOS E CONFIGURAÇÕES
 # =========================================================
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
@@ -89,7 +79,7 @@ MINHA_COBERTURA = {
 refresh_interval = 60
 
 # =========================================================
-# FUNÇÕES (LÓGICA MANTIDA)
+# FUNÇÕES (LÓGICA MANTIDA ORIGINAL)
 # =========================================================
 def format_br(val, is_pct=False, moeda_sym=""):
     if pd.isna(val) or (val == 0 and not is_pct): return "-"
@@ -125,7 +115,7 @@ def get_stock_data(tickers):
                 except: return 0.0
 
             data_list.append({
-                "Ticker": ticker.replace(".SA", ""), # Limpeza visual
+                "Ticker": ticker,
                 "Moeda": simbolo,
                 "Preço": price_current,
                 "Recomendação": dados_manuais["Rec"],
@@ -144,64 +134,26 @@ def get_stock_data(tickers):
     return pd.DataFrame(data_list)
 
 # =========================================================
-# UI PRINCIPAL
+# EXECUÇÃO PRINCIPAL
 # =========================================================
 
-# Cabeçalho Simples
-c1, c2 = st.columns([3, 1])
-with c1:
-    st.markdown("<h2 style='margin:0; padding:0; color:white;'>Monitor de Mercado</h2>", unsafe_allow_html=True)
-with c2:
-    st.markdown(f"<div style='text-align:right; color:#666; font-size:0.9rem; margin-top:10px;'>Atualizado: {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
+# Cabeçalho customizado HTML
+st.markdown(f"""
+    <div class="main-header">
+        <span>MARKET MONITOR</span>
+        <span class="update-tag">UPDATED: {datetime.now().strftime('%H:%M:%S')}</span>
+    </div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
-
-# Removido input manual da sidebar, usando direto o dict
+# Tickers direto da constante (Sem Sidebar)
 lista_tickers = list(MINHA_COBERTURA.keys())
+
 df = get_stock_data(lista_tickers)
 
 if not df.empty:
-    # --- 1. VISUALIZAÇÃO EM CARDS (MOBILE FRIENDLY) ---
-    # Isso resolve o problema de ter que rolar a tabela no celular para ver o básico
-    
-    html_cards = '<div class="stock-grid">'
-    for idx, row in df.iterrows():
-        pct_dia = row["Hoje %"]
-        color_class = "positive" if pct_dia > 0 else "negative" if pct_dia < 0 else "neutral"
-        sinal = "+" if pct_dia > 0 else ""
-        
-        # Formatação para o card
-        preco_fmt = format_br(row["Preço"], moeda_sym=row["Moeda"])
-        pct_fmt = f"{sinal}{format_br(pct_dia)}%"
-        upside_val = row["Upside"]
-        upside_cls = "positive" if upside_val > 0 else "neutral"
-        upside_fmt = f"Upside: {format_br(upside_val)}%"
-        
-        html_cards += f"""
-        <div class="stock-card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="card-ticker">{row['Ticker']}</span>
-                <span style="font-size:0.8rem; background:#333; padding:2px 6px; border-radius:4px;">{row['Recomendação']}</span>
-            </div>
-            <div class="card-price">{preco_fmt}</div>
-            <div style="font-size:1rem; font-weight:500;" class="{color_class}">
-                {pct_fmt} <span style="font-size:0.7rem; color:#666;">(Hoje)</span>
-            </div>
-            <div class="card-meta">
-                <span>Alvo: {format_br(row['Preço-Alvo'])}</span>
-                <span class="{upside_cls}">{upside_fmt}</span>
-            </div>
-        </div>
-        """
-    html_cards += '</div>'
-    st.markdown(html_cards, unsafe_allow_html=True)
-
-    # --- 2. TABELA DETALHADA (MODO COMPLETO) ---
-    st.markdown("<h5 style='color:#888; margin-top:20px; margin-bottom:10px;'>Análise Detalhada</h5>", unsafe_allow_html=True)
-
     df_view = df.copy()
     
-    # Formatação Visual
+    # Formatação (Mantida)
     df_view["Preço"] = df.apply(lambda r: format_br(r["Preço"], moeda_sym=r["Moeda"]), axis=1)
     df_view["Preço-Alvo"] = df.apply(lambda r: format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"]), axis=1)
     df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
@@ -209,20 +161,22 @@ if not df.empty:
     cols_pct = ["Upside", "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %"]
     for col in cols_pct:
         df_view[col] = df[col].apply(lambda x: format_br(x, is_pct=True))
+    
     df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
 
-    # Lógica de Cores da Tabela
+    # Estilização Cores (Mantida)
     def style_rows(row):
-        styles = ['background-color: #161a24'] * len(row) # Fundo levemente diferente para linhas
+        styles = ['background-color: #000000'] * len(row) # Fundo preto nas células
         for col_name in cols_pct:
             val = df.loc[row.name, col_name]
             idx = df_view.columns.get_loc(col_name)
+            # Mantendo as cores neon originais que funcionam bem no preto
             if col_name == "Upside":
-                if val > 20: styles[idx] = 'color: #00ff7f; font-weight:bold' # Verde
-                elif val < 0: styles[idx] = 'color: #ff4b4b' # Vermelho
+                if val > 20: styles[idx] = 'color: #00ff00; font-weight: bold;'
+                elif val < 0: styles[idx] = 'color: #ff4b4b; font-weight: bold;'
             else:
-                if val > 0.01: styles[idx] = 'color: #00ff7f'
-                elif val < -0.01: styles[idx] = 'color: #ff4b4b'
+                if val > 0.01: styles[idx] = 'color: #00ff00;'
+                elif val < -0.01: styles[idx] = 'color: #ff4b4b;'
         return styles
 
     df_final = df_view.style.apply(style_rows, axis=1)
@@ -232,10 +186,11 @@ if not df.empty:
         use_container_width=True,
         hide_index=True,
         column_order=(
-            "Ticker", "Preço", "Recomendação", "Upside",
-            "Hoje %", "YTD %", "12 Meses %", "Vol (MM)", "Mkt Cap (MM)"
+            "Ticker", "Preço", "Recomendação", "Preço-Alvo", "Upside",
+            "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %",
+            "Vol (MM)", "Mkt Cap (MM)"
         ),
-        height=(len(df) + 1) * 38
+        height=(len(df) + 1) * 35 + 3 # Ajuste fino da altura
     )
     
     time.sleep(refresh_interval)
