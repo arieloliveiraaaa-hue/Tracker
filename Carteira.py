@@ -4,65 +4,89 @@ import pandas as pd
 from datetime import datetime, timedelta
 import time
 
-# Configuração da página (Wide layout)
+# Configuração da página
 st.set_page_config(page_title="Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# ESTILIZAÇÃO CSS (VISUAL DARK / CLEAN / INVESTIMENTO)
+# DESIGN MODERNO / PROFESSIONAL / DARK MODE
 # =========================================================
 st.markdown("""
     <style>
-        /* Fundo Preto Absoluto */
+        /* Importando Fontes Modernas (Inter para texto, Roboto Mono para números) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;700&display=swap');
+
+        /* === CONFIGURAÇÕES GERAIS DA PÁGINA === */
         .stApp {
-            background-color: #000000;
+            background-color: #050505; /* Preto quase absoluto */
+            color: #E0E0E0;
         }
-        
-        /* Ajuste do Header para sumir ou ficar transparente */
-        header[data-testid="stHeader"] {
-            background-color: transparent;
-            visibility: hidden;
-        }
-        
-        /* Títulos e Textos */
-        h1, h2, h3, p, div, span {
-            color: #E0E0E0 !important;
-            font-family: 'Roboto', sans-serif;
-        }
-        
-        /* Estilização da Tabela (DataFrame) */
-        .stDataFrame {
-            border: 1px solid #333;
-        }
-        
-        /* Remove padding excessivo do topo */
+
+        /* Remove a barra de decoração superior do Streamlit */
+        header {visibility: hidden;}
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+
+        /* Ajuste de Espaçamento */
         .block-container {
-            padding-top: 1rem;
+            padding-top: 2rem;
             padding-bottom: 1rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            max-width: 100%;
+        }
+
+        /* === TIPOGRAFIA === */
+        html, body, [class*="css"] {
+            font-family: 'Inter', sans-serif;
         }
         
-        /* Customização do título principal */
-        .main-header {
-            font-size: 24px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 5px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
+        /* === CABEÇALHO PERSONALIZADO === */
+        .header-container {
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
         }
         
-        .update-tag {
-            font-size: 14px;
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: -webkit-linear-gradient(45deg, #ffffff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        
+        .header-meta {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 12px;
             color: #666;
-            font-family: monospace;
+            text-transform: uppercase;
+        }
+
+        /* === ESTILIZAÇÃO DA TABELA (DATAFRAME) === */
+        /* Força a tabela a ter fundo escuro e remove bordas brancas */
+        .stDataFrame {
+            background-color: transparent !important;
+        }
+        
+        /* Ajuste fino nos headers da tabela (se visíveis via CSS nativo) */
+        div[data-testid="stVerticalBlock"] > div {
+            background-color: transparent;
+        }
+
+        /* Barra de progresso ou loading */
+        .stProgress > div > div > div > div {
+            background-color: #333;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# DADOS E CONFIGURAÇÕES
+# DADOS (LÓGICA INTACTA)
 # =========================================================
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
@@ -79,7 +103,7 @@ MINHA_COBERTURA = {
 refresh_interval = 60
 
 # =========================================================
-# FUNÇÕES (LÓGICA MANTIDA ORIGINAL)
+# FUNÇÕES DE CÁLCULO E FORMATAÇÃO (INTACTAS)
 # =========================================================
 def format_br(val, is_pct=False, moeda_sym=""):
     if pd.isna(val) or (val == 0 and not is_pct): return "-"
@@ -134,26 +158,28 @@ def get_stock_data(tickers):
     return pd.DataFrame(data_list)
 
 # =========================================================
-# EXECUÇÃO PRINCIPAL
+# RENDERIZAÇÃO
 # =========================================================
 
-# Cabeçalho customizado HTML
+# HTML personalizado para o Título (Mais limpo e moderno)
 st.markdown(f"""
-    <div class="main-header">
-        <span>MARKET MONITOR</span>
-        <span class="update-tag">UPDATED: {datetime.now().strftime('%H:%M:%S')}</span>
+    <div class="header-container">
+        <div>
+            <h1 class="header-title">EQUITY MONITOR</h1>
+        </div>
+        <div class="header-meta">
+            LIVE DATA • {datetime.now().strftime('%H:%M:%S')} • B3/NYSE
+        </div>
     </div>
 """, unsafe_allow_html=True)
 
-# Tickers direto da constante (Sem Sidebar)
 lista_tickers = list(MINHA_COBERTURA.keys())
-
 df = get_stock_data(lista_tickers)
 
 if not df.empty:
     df_view = df.copy()
     
-    # Formatação (Mantida)
+    # Aplicação da formatação (Strings)
     df_view["Preço"] = df.apply(lambda r: format_br(r["Preço"], moeda_sym=r["Moeda"]), axis=1)
     df_view["Preço-Alvo"] = df.apply(lambda r: format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"]), axis=1)
     df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
@@ -164,22 +190,60 @@ if not df.empty:
     
     df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
 
-    # Estilização Cores (Mantida)
+    # ESTILIZAÇÃO AVANÇADA DO DATAFRAME (PANDAS STYLER)
+    # Aqui definimos as cores de fundo, bordas e fontes da tabela
     def style_rows(row):
-        styles = ['background-color: #000000'] * len(row) # Fundo preto nas células
+        # Cor padrão para todas as células (Cinza muito escuro/Preto) e fonte monospace
+        base_style = 'background-color: #111111; color: #e0e0e0; font-family: "Roboto Mono", monospace; border-bottom: 1px solid #222;'
+        styles = [base_style] * len(row)
+        
         for col_name in cols_pct:
             val = df.loc[row.name, col_name]
             idx = df_view.columns.get_loc(col_name)
-            # Mantendo as cores neon originais que funcionam bem no preto
+            
+            # Lógica de Cores (Verde Neon / Vermelho Neon / Cinza)
+            color_style = base_style
             if col_name == "Upside":
-                if val > 20: styles[idx] = 'color: #00ff00; font-weight: bold;'
-                elif val < 0: styles[idx] = 'color: #ff4b4b; font-weight: bold;'
+                if val > 20: 
+                    color_style += 'color: #00FF99; font-weight: 700;' # Verde Neon Forte
+                elif val < 0: 
+                    color_style += 'color: #FF4B4B; font-weight: 700;' # Vermelho Forte
+                else:
+                    color_style += 'color: #aaaaaa;'
             else:
-                if val > 0.01: styles[idx] = 'color: #00ff00;'
-                elif val < -0.01: styles[idx] = 'color: #ff4b4b;'
+                if val > 0.01: 
+                    color_style += 'color: #00FF99;'
+                elif val < -0.01: 
+                    color_style += 'color: #FF4B4B;'
+                else:
+                    color_style += 'color: #aaaaaa;'
+            
+            styles[idx] = color_style
+            
         return styles
 
+    # Aplicando headers customizados via Pandas Style properties
     df_final = df_view.style.apply(style_rows, axis=1)
+    
+    # Customização global da tabela via Pandas Styler
+    df_final.set_properties(**{
+        'text-align': 'right',
+        'padding': '10px'
+    })
+    
+    # Customização do Hover (passar o mouse)
+    df_final.set_table_styles([
+        {'selector': 'th', 'props': [
+            ('background-color', '#000000'),
+            ('color', '#888'),
+            ('font-family', 'Inter, sans-serif'),
+            ('font-size', '12px'),
+            ('text-transform', 'uppercase'),
+            ('border-bottom', '2px solid #333'),
+            ('text-align', 'right')
+        ]},
+        {'selector': 'tr:hover', 'props': [('background-color', '#1a1a1a !important')]} 
+    ])
 
     st.dataframe(
         df_final,
@@ -190,7 +254,7 @@ if not df.empty:
             "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %",
             "Vol (MM)", "Mkt Cap (MM)"
         ),
-        height=(len(df) + 1) * 35 + 3 # Ajuste fino da altura
+        height=(len(df) + 1) * 45 # Altura levemente maior para melhor respiro
     )
     
     time.sleep(refresh_interval)
