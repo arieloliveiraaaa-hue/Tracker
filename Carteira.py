@@ -29,7 +29,7 @@ st.markdown("""
         /* TÍTULO PRINCIPAL - FORÇADO PARA FICAR GIGANTE */
         .main-title {
             font-family: 'Inter', sans-serif !important;
-            font-size: 80px !important; /* Aumentado drasticamente */
+            font-size: 60px !important; /* Aumentado drasticamente */
             font-weight: 900 !important;
             color: #FFFFFF !important;
             letter-spacing: -4px !important;
