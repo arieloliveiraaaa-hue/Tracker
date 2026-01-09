@@ -24,9 +24,62 @@ MINHA_COBERTURA = {
 
 refresh_interval = 60
 
+# =========================================================
+# VISUAL (dark + clean + mobile friendly)
+# =========================================================
+st.markdown(
+    """
+    <style>
+      :root{
+        --bg:#070A0F;
+        --panel:#0B1220;
+        --panel2:#0F172A;
+        --text:#E5E7EB;
+        --muted:#9CA3AF;
+        --border:#1F2937;
+      }
+
+      [data-testid="stAppViewContainer"] { background: var(--bg); }
+      [data-testid="stHeader"] { background: rgba(0,0,0,0); }
+      [data-testid="stSidebar"] { display: none; } /* remove sidebar */
+      .block-container { padding-top: 1.25rem; padding-bottom: 2rem; max-width: 1400px; }
+
+      /* Typography */
+      h1,h2,h3,h4,h5,h6,p,span,div { color: var(--text); }
+      .stCaption, small { color: var(--muted) !important; }
+
+      /* Header card */
+      .top-card{
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 16px 18px;
+        margin-bottom: 14px;
+      }
+      .top-title{
+        font-size: 26px;
+        font-weight: 750;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+      .top-sub{
+        margin: 6px 0 0 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* Mobile padding + font */
+      @media (max-width: 768px){
+        .block-container { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .top-title{ font-size: 22px; }
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 def format_br(val, is_pct=False, moeda_sym=""):
     if pd.isna(val) or (val == 0 and not is_pct): return "-"
-    # Formata com separadores BR: ponto para milhar, vírgula para decimal
     formatted = "{:,.2f}".format(val).replace(",", "X").replace(".", ",").replace("X", ".")
     if is_pct: return f"{formatted}%"
     if moeda_sym: return f"{moeda_sym} {formatted}"
@@ -56,7 +109,8 @@ def get_stock_data(tickers):
                     target_ts = pd.Timestamp(target_date).tz_localize(hist.index.tz)
                     idx = hist.index.get_indexer([target_ts], method='pad')[0]
                     return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
-                except: return 0.0
+                except:
+                    return 0.0
 
             data_list.append({
                 "Ticker": ticker,
@@ -74,31 +128,38 @@ def get_stock_data(tickers):
                 "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000,
                 "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info.get('marketCap') else 0
             })
-        except: continue
+        except:
+            continue
     return pd.DataFrame(data_list)
 
-st.title("Monitor de ações")
-st.caption(f"Atualização automática: {datetime.now().strftime('%H:%M:%S')}")
+# Top header (clean, investment-like)
+st.markdown(
+    f"""
+    <div class="top-card">
+      <div class="top-title">Monitor de ações</div>
+      <div class="top-sub">Atualização automática: {datetime.now().strftime('%H:%M:%S')}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-tickers_input = st.sidebar.text_area("Ações:", value=", ".join(MINHA_COBERTURA.keys()), height=200)
-lista_tickers = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
+# Sem edição de ticker (remove sidebar)
+lista_tickers = list(MINHA_COBERTURA.keys())
 
 df = get_stock_data(lista_tickers)
 
 if not df.empty:
-    # Criamos as colunas formatadas como strings para exibição
     df_view = df.copy()
-    # Aplicação da formatação brasileira com símbolos de moeda dinâmicos
+
     df_view["Preço"] = df.apply(lambda r: format_br(r["Preço"], moeda_sym=r["Moeda"]), axis=1)
     df_view["Preço-Alvo"] = df.apply(lambda r: format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"]), axis=1)
     df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
-    # Porcentagens
+
     cols_pct = ["Upside", "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %"]
     for col in cols_pct:
         df_view[col] = df[col].apply(lambda x: format_br(x, is_pct=True))
     df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
 
-    # Estilização de Cores (usando os valores numéricos do DF original)
     def style_rows(row):
         styles = [''] * len(row)
         for col_name in cols_pct:
@@ -112,7 +173,19 @@ if not df.empty:
                 elif val < -0.01: styles[idx] = 'color: #ff4b4b'
         return styles
 
-    df_final = df_view.style.apply(style_rows, axis=1)
+    base_table_styles = [
+        {"selector": "th", "props": [("background-color", "#0F172A"), ("color", "#9CA3AF"),
+                                    ("border-bottom", "1px solid #1F2937"), ("font-weight", "600")]},
+        {"selector": "td", "props": [("background-color", "#0B1220"), ("color", "#E5E7EB"),
+                                    ("border-bottom", "1px solid #111827")]},
+    ]
+
+    df_final = (
+        df_view.style
+        .apply(style_rows, axis=1)
+        .set_table_styles(base_table_styles)
+        .set_properties(**{"border-color": "#1F2937"})
+    )
 
     st.dataframe(
         df_final,
@@ -125,5 +198,6 @@ if not df.empty:
         ),
         height=(len(df) + 1) * 36
     )
+
     time.sleep(refresh_interval)
     st.rerun()
