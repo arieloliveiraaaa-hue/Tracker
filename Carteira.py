@@ -41,7 +41,7 @@ st.markdown("""
         /* TERMINAL DE DADOS - DESCRIÇÃO */
         .sub-header {
             font-family: 'JetBrains Mono', monospace !important;
-            font-size: 16px !important;
+            font-size: 15px !important;
             color: #444 !important; /* Tom de cinza para não brigar com o título */
             margin-top: 10px !important;
             margin-bottom: 60px !important;
@@ -62,7 +62,7 @@ st.markdown("""
         th {
             background-color: #000000 !important;
             color: #FFFFFF !important; /* Branco puro para os títulos das colunas */
-            font-size: 14px !important;
+            font-size: 12px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
             letter-spacing: 1.5px !important;
