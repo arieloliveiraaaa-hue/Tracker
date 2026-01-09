@@ -3,13 +3,76 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import time
-from io import BytesIO
-import html
 
+# Mantendo configuração original
 st.set_page_config(page_title="Monitor de Ações", layout="wide")
 
 # =========================================================
-# ESPAÇO PARA MANUTENÇÃO MANUAL DE RECOMENDAÇÕES
+# CSS CUSTOMIZADO (MODERNIZAÇÃO & MOBILE FRIENDLY)
+# =========================================================
+st.markdown("""
+<style>
+    /* Importando fonte estilo 'Bloomberg Terminal' / Moderna */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    /* Fundo geral escuro e fontes */
+    .stApp {
+        background-color: #0e1117;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Remove padding excessivo do topo */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    /* Estilização do Grid de Cards */
+    .stock-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    /* Card individual */
+    .stock-card {
+        background-color: #1c1c1c;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 15px;
+        color: white;
+        transition: transform 0.2s;
+    }
+    .stock-card:hover {
+        border-color: #555;
+    }
+
+    /* Tipografia dentro do card */
+    .card-ticker { font-size: 1.2rem; font-weight: 700; color: #e0e0e0; }
+    .card-price { font-size: 1.5rem; font-weight: 600; margin: 5px 0; }
+    .card-meta { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; margin-top: 8px;}
+    
+    /* Cores de variação */
+    .positive { color: #00ff7f; } /* Verde neon */
+    .negative { color: #ff4b4b; } /* Vermelho neon */
+    .neutral  { color: #b0b0b0; }
+
+    /* Esconde elementos padrão do Streamlit que poluem o visual */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Melhoria visual da tabela */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #333;
+        border-radius: 5px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# DADOS (MANTIDOS)
 # =========================================================
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
@@ -22,127 +85,15 @@ MINHA_COBERTURA = {
     "RDOR3": {"Rec": "Compra", "Alvo": 34.00},
     "HAPV3": {"Rec": "Compra", "Alvo": 64.80},
 }
-# =========================================================
 
 refresh_interval = 60
 
 # =========================================================
-# VISUAL (dark + profissional + responsivo)
+# FUNÇÕES (LÓGICA MANTIDA)
 # =========================================================
-st.markdown(
-    """
-    <style>
-      :root{
-        --bg:#05070C;
-        --panel:#0B1220;
-        --panel2:#0F172A;
-        --text:#E5E7EB;
-        --muted:#9CA3AF;
-        --border:rgba(255,255,255,0.10);
-        --pos:#22C55E;
-        --neg:#EF4444;
-        --accent:#60A5FA;
-      }
-
-      [data-testid="stAppViewContainer"]{
-        background: radial-gradient(1200px 600px at 10% 0%, rgba(96,165,250,0.10), rgba(0,0,0,0)) , var(--bg);
-      }
-      [data-testid="stHeader"]{ background: rgba(0,0,0,0); }
-      [data-testid="stSidebar"]{ display:none; }
-      .block-container{ padding-top: 1.2rem; padding-bottom: 2rem; max-width: 1400px; }
-
-      /* Hero */
-      .hero{
-        border: 1px solid var(--border);
-        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-        border-radius: 22px;
-        padding: 16px 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 18px 55px rgba(0,0,0,0.45);
-      }
-      .hero-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-      .brand{ display:flex; align-items:center; gap:10px; }
-      .mark{
-        width: 38px; height: 38px; border-radius: 14px;
-        background: radial-gradient(circle at 30% 30%, rgba(96,165,250,0.35), rgba(34,197,94,0.16));
-        border: 1px solid rgba(255,255,255,0.12);
-      }
-      .hero-title{ margin:0; font-size: 26px; font-weight: 800; letter-spacing: 0.2px; color: var(--text); }
-      .hero-sub{ margin: 4px 0 0 0; font-size: 13px; color: var(--muted); }
-      .pill{
-        font-size: 12px; color: var(--muted);
-        padding: 7px 10px; border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.10);
-        background: rgba(255,255,255,0.03);
-        white-space: nowrap;
-      }
-
-      /* Action bar */
-      .hint{
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 8px;
-      }
-
-      /* Download button */
-      .stDownloadButton button{
-        width: 100% !important;
-        background: linear-gradient(180deg, rgba(96,165,250,0.22), rgba(96,165,250,0.12)) !important;
-        color: var(--text) !important;
-        border: 1px solid rgba(96,165,250,0.35) !important;
-        border-radius: 14px !important;
-        padding: 0.60rem 0.90rem !important;
-      }
-      .stDownloadButton button:hover{ border-color: rgba(96,165,250,0.60) !important; }
-
-      /* Dataframe container (escuro) */
-      div[data-testid="stDataFrame"]{
-        border: 1px solid var(--border);
-        background: rgba(255,255,255,0.02);
-        border-radius: 18px;
-        padding: 6px;
-      }
-
-      /* Mobile */
-      .desktop-only{ display:block; }
-      .mobile-only{ display:none; }
-
-      .cards{
-        display:grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      .card{
-        border: 1px solid var(--border);
-        background: linear-gradient(180deg, rgba(11,18,32,0.92), rgba(11,18,32,0.70));
-        border-radius: 18px;
-        padding: 12px;
-      }
-      .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom: 8px; }
-      .tkr{ font-size: 15px; font-weight: 800; letter-spacing: 0.2px; color: var(--text); }
-      .rec{ font-size: 12px; color: var(--muted); }
-      .kv{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 10px; }
-      .k{ font-size: 11px; color: var(--muted); }
-      .v{ font-size: 13px; font-weight: 700; color: var(--text); }
-      .pos{ color: var(--pos); font-weight: 800; }
-      .neg{ color: var(--neg); font-weight: 800; }
-
-      @media (max-width: 768px){
-        .block-container{ padding-left: 0.75rem; padding-right: 0.75rem; }
-        .hero-title{ font-size: 22px; }
-        .pill{ display:none; }
-
-        .desktop-only{ display:none; }
-        .mobile-only{ display:block; }
-      }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 def format_br(val, is_pct=False, moeda_sym=""):
-    if pd.isna(val): return "-"
-    formatted = "{:,.2f}".format(float(val)).replace(",", "X").replace(".", ",").replace("X", ".")
+    if pd.isna(val) or (val == 0 and not is_pct): return "-"
+    formatted = "{:,.2f}".format(val).replace(",", "X").replace(".", ",").replace("X", ".")
     if is_pct: return f"{formatted}%"
     if moeda_sym: return f"{moeda_sym} {formatted}"
     return formatted
@@ -154,30 +105,27 @@ def get_stock_data(tickers):
             stock = yf.Ticker(ticker)
             hist = stock.history(period="6y", auto_adjust=True)
             if hist.empty: continue
-            hist = hist[hist["Close"] > 0].dropna()
-
-            price_current = float(hist["Close"].iloc[-1])
-            price_prev_close = float(hist["Close"].iloc[-2]) if len(hist) > 1 else price_current
-
+            hist = hist[hist['Close'] > 0].dropna()
+            price_current = float(hist['Close'].iloc[-1])
+            price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
             info = stock.info
-            moeda = info.get("currency", "BRL")
+            moeda = info.get('currency', 'BRL')
             simbolo = "$" if moeda == "USD" else "R$" if moeda == "BRL" else moeda
 
             dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
-            preco_alvo = float(dados_manuais["Alvo"])
+            preco_alvo = dados_manuais["Alvo"]
             upside = (preco_alvo / price_current - 1) * 100 if preco_alvo > 0 else 0.0
 
             def calculate_pct(days_ago=None, is_ytd=False):
                 try:
                     target_date = datetime(datetime.now().year, 1, 1) if is_ytd else datetime.now() - timedelta(days=days_ago)
                     target_ts = pd.Timestamp(target_date).tz_localize(hist.index.tz)
-                    idx = hist.index.get_indexer([target_ts], method="pad")[0]
-                    return ((price_current / float(hist["Close"].iloc[idx])) - 1) * 100
-                except:
-                    return 0.0
+                    idx = hist.index.get_indexer([target_ts], method='pad')[0]
+                    return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
+                except: return 0.0
 
             data_list.append({
-                "Ticker": ticker,
+                "Ticker": ticker.replace(".SA", ""), # Limpeza visual
                 "Moeda": simbolo,
                 "Preço": price_current,
                 "Recomendação": dados_manuais["Rec"],
@@ -189,197 +137,106 @@ def get_stock_data(tickers):
                 "12 Meses %": calculate_pct(days_ago=365),
                 "YTD %": calculate_pct(is_ytd=True),
                 "5 Anos %": calculate_pct(days_ago=1825),
-                "Vol (MM)": float(info.get("regularMarketVolume", 0)) / 1_000_000,
-                "Mkt Cap (MM)": float(info.get("marketCap", 0)) / 1_000_000 if info.get("marketCap") else 0,
+                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000,
+                "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info.get('marketCap') else 0
             })
-        except:
-            continue
-
+        except: continue
     return pd.DataFrame(data_list)
 
-# Excel sem openpyxl (gera .xls via SpreadsheetML XML)
-def df_to_xls_bytes(df: pd.DataFrame, sheet_name: str = "Monitor") -> bytes:
-    def cell(v):
-        if pd.isna(v):
-            return '<Cell><Data ss:Type="String"></Data></Cell>'
-        if isinstance(v, (int, float)) and not isinstance(v, bool):
-            return f'<Cell><Data ss:Type="Number">{float(v)}</Data></Cell>'
-        return f'<Cell><Data ss:Type="String">{html.escape(str(v))}</Data></Cell>'
+# =========================================================
+# UI PRINCIPAL
+# =========================================================
 
-    cols = df.columns.tolist()
-    header = "".join(cell(c) for c in cols)
+# Cabeçalho Simples
+c1, c2 = st.columns([3, 1])
+with c1:
+    st.markdown("<h2 style='margin:0; padding:0; color:white;'>Monitor de Mercado</h2>", unsafe_allow_html=True)
+with c2:
+    st.markdown(f"<div style='text-align:right; color:#666; font-size:0.9rem; margin-top:10px;'>Atualizado: {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
 
-    rows = []
-    for _, r in df.iterrows():
-        rows.append("<Row>" + "".join(cell(r[c]) for c in cols) + "</Row>")
-    rows_xml = "".join(rows)
+st.markdown("---")
 
-    xml = f"""<?xml version="1.0"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Worksheet ss:Name="{html.escape(sheet_name)}">
-    <Table>
-      <Row>{header}</Row>
-      {rows_xml}
-    </Table>
-  </Worksheet>
-</Workbook>
-"""
-    return xml.encode("utf-8-sig")
-
-# =========================
-# HEADER
-# =========================
-now_str = datetime.now().strftime("%H:%M:%S")
-st.markdown(
-    f"""
-    <div class="hero">
-      <div class="hero-top">
-        <div class="brand">
-          <div class="mark"></div>
-          <div>
-            <div class="hero-title">Monitor de Ações</div>
-            <div class="hero-sub">Atualização automática • {now_str}</div>
-            <div class="hint">Dica: clique no nome da coluna para ordenar (↑↓).</div>
-          </div>
-        </div>
-        <div class="pill">Cobertura: {len(MINHA_COBERTURA)} tickers</div>
-      </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
+# Removido input manual da sidebar, usando direto o dict
 lista_tickers = list(MINHA_COBERTURA.keys())
 df = get_stock_data(lista_tickers)
 
 if not df.empty:
-    # Botão de download (único controle)
-    c1, c2 = st.columns([3.0, 1.2], vertical_alignment="bottom")
-    with c2:
-        export_cols = [
-            "Ticker", "Moeda", "Preço", "Recomendação", "Preço-Alvo", "Upside",
-            "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %",
-            "Vol (MM)", "Mkt Cap (MM)"
-        ]
-        xls_bytes = df_to_xls_bytes(df[export_cols], sheet_name="Monitor")
-        st.download_button(
-            "Baixar Excel",
-            data=xls_bytes,
-            file_name=f"monitor_acoes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xls",
-            mime="application/vnd.ms-excel",
-            use_container_width=True,
-        )
+    # --- 1. VISUALIZAÇÃO EM CARDS (MOBILE FRIENDLY) ---
+    # Isso resolve o problema de ter que rolar a tabela no celular para ver o básico
+    
+    html_cards = '<div class="stock-grid">'
+    for idx, row in df.iterrows():
+        pct_dia = row["Hoje %"]
+        color_class = "positive" if pct_dia > 0 else "negative" if pct_dia < 0 else "neutral"
+        sinal = "+" if pct_dia > 0 else ""
+        
+        # Formatação para o card
+        preco_fmt = format_br(row["Preço"], moeda_sym=row["Moeda"])
+        pct_fmt = f"{sinal}{format_br(pct_dia)}%"
+        upside_val = row["Upside"]
+        upside_cls = "positive" if upside_val > 0 else "neutral"
+        upside_fmt = f"Upside: {format_br(upside_val)}%"
+        
+        html_cards += f"""
+        <div class="stock-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="card-ticker">{row['Ticker']}</span>
+                <span style="font-size:0.8rem; background:#333; padding:2px 6px; border-radius:4px;">{row['Recomendação']}</span>
+            </div>
+            <div class="card-price">{preco_fmt}</div>
+            <div style="font-size:1rem; font-weight:500;" class="{color_class}">
+                {pct_fmt} <span style="font-size:0.7rem; color:#666;">(Hoje)</span>
+            </div>
+            <div class="card-meta">
+                <span>Alvo: {format_br(row['Preço-Alvo'])}</span>
+                <span class="{upside_cls}">{upside_fmt}</span>
+            </div>
+        </div>
+        """
+    html_cards += '</div>'
+    st.markdown(html_cards, unsafe_allow_html=True)
 
-    # =========================
-    # DESKTOP: st.dataframe (sorting por coluna)
-    # =========================
-    col_order = (
-        "Ticker", "Moeda", "Preço", "Recomendação", "Preço-Alvo", "Upside",
-        "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %",
-        "Vol (MM)", "Mkt Cap (MM)"
-    )
+    # --- 2. TABELA DETALHADA (MODO COMPLETO) ---
+    st.markdown("<h5 style='color:#888; margin-top:20px; margin-bottom:10px;'>Análise Detalhada</h5>", unsafe_allow_html=True)
 
+    df_view = df.copy()
+    
+    # Formatação Visual
+    df_view["Preço"] = df.apply(lambda r: format_br(r["Preço"], moeda_sym=r["Moeda"]), axis=1)
+    df_view["Preço-Alvo"] = df.apply(lambda r: format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"]), axis=1)
+    df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
+    
     cols_pct = ["Upside", "Hoje %", "30 Dias %", "6 Meses %", "12 Meses %", "YTD %", "5 Anos %"]
+    for col in cols_pct:
+        df_view[col] = df[col].apply(lambda x: format_br(x, is_pct=True))
+    df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
 
+    # Lógica de Cores da Tabela
     def style_rows(row):
-        styles = ["background-color: #0B1220; color: #E5E7EB;"] * len(row)
+        styles = ['background-color: #161a24'] * len(row) # Fundo levemente diferente para linhas
         for col_name in cols_pct:
-            try:
-                val = float(row[col_name])
-            except:
-                val = 0.0
-            idx = row.index.get_loc(col_name)
+            val = df.loc[row.name, col_name]
+            idx = df_view.columns.get_loc(col_name)
             if col_name == "Upside":
-                if val > 20:
-                    styles[idx] += "color: #22C55E; font-weight: 800;"
-                elif val < 0:
-                    styles[idx] += "color: #EF4444; font-weight: 800;"
+                if val > 20: styles[idx] = 'color: #00ff7f; font-weight:bold' # Verde
+                elif val < 0: styles[idx] = 'color: #ff4b4b' # Vermelho
             else:
-                if val > 0.01:
-                    styles[idx] += "color: #22C55E; font-weight: 800;"
-                elif val < -0.01:
-                    styles[idx] += "color: #EF4444; font-weight: 800;"
+                if val > 0.01: styles[idx] = 'color: #00ff7f'
+                elif val < -0.01: styles[idx] = 'color: #ff4b4b'
         return styles
 
-    df_show = df[list(col_order)].copy()
+    df_final = df_view.style.apply(style_rows, axis=1)
 
-    # Styler: escuro + cores (mantém valores numéricos para ordenar corretamente)
-    styler = (
-        df_show.style
-        .apply(style_rows, axis=1)
-        .set_table_styles([
-            {"selector": "th", "props": [
-                ("background-color", "#0F172A"),
-                ("color", "#9CA3AF"),
-                ("border-bottom", "1px solid rgba(255,255,255,0.10)"),
-                ("font-weight", "700"),
-            ]},
-            {"selector": "td", "props": [
-                ("border-bottom", "1px solid rgba(255,255,255,0.06)"),
-            ]},
-        ])
-    )
-
-    st.markdown('<div class="desktop-only">', unsafe_allow_html=True)
     st.dataframe(
-        styler,
+        df_final,
         use_container_width=True,
         hide_index=True,
-        column_order=col_order,
-        height=(len(df_show) + 1) * 36,
+        column_order=(
+            "Ticker", "Preço", "Recomendação", "Upside",
+            "Hoje %", "YTD %", "12 Meses %", "Vol (MM)", "Mkt Cap (MM)"
+        ),
+        height=(len(df) + 1) * 38
     )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # =========================
-    # MOBILE: cards (sem scroll horizontal)
-    # =========================
-    st.markdown('<div class="mobile-only">', unsafe_allow_html=True)
-
-    card_blocks = []
-    for _, r in df.iterrows():
-        tkr = r["Ticker"]
-        rec = r["Recomendação"]
-        moeda = r["Moeda"]
-
-        preco = format_br(r["Preço"], moeda_sym=moeda)
-        alvo = format_br(r["Preço-Alvo"], moeda_sym=moeda)
-
-        upside_v = float(r["Upside"])
-        hoje_v = float(r["Hoje %"])
-        d30_v = float(r["30 Dias %"])
-        ytd_v = float(r["YTD %"])
-
-        def cls(col, v):
-            if col == "Upside":
-                return "pos" if v > 20 else "neg" if v < 0 else ""
-            return "pos" if v > 0.01 else "neg" if v < -0.01 else ""
-
-        card_blocks.append(
-            f"""
-            <div class="card">
-              <div class="card-head">
-                <div class="tkr">{tkr}</div>
-                <div class="rec">{rec}</div>
-              </div>
-              <div class="kv">
-                <div><div class="k">Preço</div><div class="v">{preco}</div></div>
-                <div><div class="k">Preço-alvo</div><div class="v">{alvo}</div></div>
-
-                <div><div class="k">Upside</div><div class="v"><span class="{cls('Upside', upside_v)}">{format_br(upside_v, is_pct=True)}</span></div></div>
-                <div><div class="k">Hoje</div><div class="v"><span class="{cls('Hoje %', hoje_v)}">{format_br(hoje_v, is_pct=True)}</span></div></div>
-
-                <div><div class="k">30 dias</div><div class="v"><span class="{cls('30 Dias %', d30_v)}">{format_br(d30_v, is_pct=True)}</span></div></div>
-                <div><div class="k">YTD</div><div class="v"><span class="{cls('YTD %', ytd_v)}">{format_br(ytd_v, is_pct=True)}</span></div></div>
-              </div>
-            </div>
-            """
-        )
-
-    st.markdown(f'<div class="cards">{"".join(card_blocks)}</div>', unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
+    
     time.sleep(refresh_interval)
     st.rerun()
