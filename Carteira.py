@@ -169,6 +169,54 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- MOBILE VIEW (SETORES) ---
+mobile_html_cards = ""
+last_sector = None
+
+for sector, t in ordered_pairs:
+    k = display_ticker_key(t)
+    if k not in df_map:
+        continue
+
+    # INSERE DIVISÓRIA DE SETOR (MOBILE) - IGUAL A LÓGICA DO DESKTOP
+    if sector != last_sector:
+        mobile_html_cards += f"""
+        <div style="
+            padding: 14px 12px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border-top: 2px solid #222;
+            border-bottom: 1px solid #111;
+            background-color: #000;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: #444;
+            font-size: 11px;
+        ">{sector}</div>
+        """
+        last_sector = sector
+
+    row = df_map[k]
+    c_price = "#00FF95" if float(row['Hoje %']) > 0 else "#FF4B4B" if float(row['Hoje %']) < 0 else "#FFFFFF"
+
+    mobile_html_cards += f"""
+    <details class="mobile-card">
+        <summary class="m-summary">
+            <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
+            <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
+                <span>{sector}</span><span>▼</span>
+            </div>
+        </summary>
+        <div class="m-grid">
+            <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
+            <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
+        </div>
+    </details>"""
+
+st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
+
+
 # =========================================================
 # LÓGICA DE DADOS
 # =========================================================
