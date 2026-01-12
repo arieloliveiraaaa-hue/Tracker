@@ -9,7 +9,7 @@ import requests
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS
+# DESIGN PREMIUM - CSS (INALTRADO)
 # =========================================================
 st.markdown("""
     <style>
@@ -32,7 +32,7 @@ st.markdown("""
             background-color: transparent !important;
             border: none !important;
             color: #444 !important;
-            font-family: 'JetBrains Mono', monospace !important;
+            font-family: 'Inter', sans-serif !important;
             font-size: 13px !important;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -140,10 +140,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LÓGICA DE DADOS (CORREÇÃO DE CONEXÃO)
+# LÓGICA DE CONEXÃO E DADOS
 # =========================================================
 
-# Criar uma sessão para evitar o erro 401 Unauthorized
+# Criar uma sessão persistente para evitar 401 Unauthorized
 session = requests.Session()
 session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
@@ -163,17 +163,17 @@ MINHA_COBERTURA = {
 
 SETORES_ACOMPANHAMENTO = {
     "IBOV": ["^BVSP"],
-    "Varejo e Bens de Consumo": ["AZZA3.SA", "LREN3.SA", "CEAB3.SA", "GUAR3.SA", "TFCO4.SA", "VIVA3.SA", "SBFG3.SA", "MELI", "MGLU3.SA", "BHIA3.SA", "ASAI3.SA", "GMAT3.SA", "PCAR3.SA", "SMFT3.SA", "NATU3.SA", "AUAU3.SA", "VULC3.SA", "ALPA4.SA"],
-    "Farmácias e Farmacêuticas": ["RADL3.SA", "PGMN3.SA", "PNVL3.SA", "DMVF3.SA", "PFRM3.SA", "HYPE3.SA", "BLAU3.SA"],
+    "Varejo e Bens de Consumo": ["AZZA3.SA", "LREN3.SA", "CEAB3.SA", "GUAR3.SA", "TFCO4.SA", "VIVA3.SA", "SBFG3.SA", "MGLU3.SA", "BHIA3.SA", "ASAI3.SA", "GMAT3.SA", "PCAR3.SA", "SMFT3.SA", "VULC3.SA", "ALPA4.SA"],
+    "Farmácias e Farmacêuticas": ["RADL3.SA", "PGMN3.SA", "PNVL3.SA", "HYPE3.SA", "BLAU3.SA"],
     "Shoppings": ["MULT3.SA", "ALOS3.SA", "IGTI11.SA"],
-    "Agronegócio e Proteínas": ["AGRO3.SA", "SLCE3.SA", "ABEV3.SA", "MDIA3.SA", "JBS", "MBRF3.SA", "BEEF3.SA", "SMTO3.SA", "KEPL3.SA"],
+    "Agronegócio e Proteínas": ["AGRO3.SA", "SLCE3.SA", "ABEV3.SA", "MDIA3.SA", "MBRF3.SA", "BEEF3.SA", "SMTO3.SA", "KEPL3.SA"],
     "Bens de Capital": ["WEGE3.SA", "EMBJ3.SA", "LEVE3.SA", "TUPY3.SA", "MYPK3.SA", "FRAS3.SA", "RAPT4.SA", "POMO4.SA"],
     "Transporte e Logística": ["RENT3.SA", "MOVI3.SA", "VAMO3.SA", "RAIL3.SA", "SIMH3.SA"],
-    "Bancos e Financeiras": ["ITUB4.SA", "BBDC4.SA", "BBAS3.SA", "SANB11.SA", "NU", "BPAC11.SA", "XP", "INTR", "PAGS", "BRSR6.SA", "B3SA3.SA", "BBSE3.SA", "PSSA3.SA", "CXSE3.SA"],
+    "Bancos e Financeiras": ["ITUB4.SA", "BBDC4.SA", "BBAS3.SA", "SANB11.SA", "BPAC11.SA", "BRSR6.SA", "B3SA3.SA", "BBSE3.SA", "PSSA3.SA", "CXSE3.SA"],
     "Educação": ["YDUQ3.SA", "COGN3.SA", "ANIM3.SA", "SEER3.SA"],
-    "Energia Elétrica": ["AXIA3.SA", "AURE3.SA", "EQTL3.SA", "EGIE3.SA", "TAEE11.SA", "ENEV3.SA", "CMIG4.SA", "CPLE3.SA", "CPFE3.SA", "ENGI11.SA", "ISA4.SA", "ALUP11.SA"],
+    "Energia Elétrica": ["AXIA3.SA", "AURE3.SA", "EQTL3.SA", "EGIE3.SA", "TAEE11.SA", "ENEV3.SA", "CMIG4.SA", "CPLE3.SA", "CPFE3.SA", "ENGI11.SA", "ALUP11.SA"],
     "Água e Saneamento": ["SBSP3.SA", "SAPR11.SA", "CSMG3.SA", "ORVR3.SA"],
-    "Concessões": ["MOTV3.SA", "ECOR3.SA"],
+    "Concessões": ["ECOR3.SA"],
     "Saúde": ["RDOR3.SA", "HAPV3.SA", "ODPV3.SA", "MATD3.SA", "FLRY3.SA"],
     "Tech e Telecom": ["VIVT3.SA", "TIMS3.SA", "TOTS3.SA", "LWSA3.SA"],
     "Construção e Real Estate": ["EZTC3.SA", "CYRE3.SA", "MRVE3.SA", "MDNE3.SA", "TEND3.SA", "MTRE3.SA", "PLPL3.SA", "DIRR3.SA", "CURY3.SA", "JHSF3.SA"],
@@ -198,6 +198,7 @@ def get_stock_data(tickers):
     data_list = []
     for ticker in tickers:
         try:
+            # Uso da sessão para evitar erro 401
             stock = yf.Ticker(ticker, session=session)
             hist = stock.history(period="1y", auto_adjust=True)
             if hist.empty: continue
@@ -205,7 +206,7 @@ def get_stock_data(tickers):
             price_current = float(hist['Close'].iloc[-1])
             price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
             
-            # Tenta pegar info, se der erro, usa defaults para não quebrar a página
+            # Recuperação segura de metadados
             try:
                 info = stock.info
                 moeda = info.get('currency', 'BRL')
@@ -221,6 +222,7 @@ def get_stock_data(tickers):
 
             def calculate_pct(days_ago=None, is_ytd=False):
                 try:
+                    # Garantir que a data alvo esteja dentro do índice
                     target_date = datetime(datetime.now().year, 1, 1) if is_ytd else datetime.now() - timedelta(days=days_ago)
                     idx = hist.index.get_indexer([target_date], method='pad')[0]
                     return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
@@ -234,7 +236,7 @@ def get_stock_data(tickers):
                 "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
                 "Vol (MM)": vol
             })
-        except Exception as e:
+        except:
             continue
     return pd.DataFrame(data_list)
 
@@ -248,30 +250,30 @@ with tab_cobertura:
     st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
 
-    df = get_stock_data(list(MINHA_COBERTURA.keys()))
+    df_cob = get_stock_data(list(MINHA_COBERTURA.keys()))
 
-    if not df.empty:
+    if not df_cob.empty:
         with st.popover("⚙️"):
-            sort_col = st.selectbox("Ordenar por:", df.columns, index=0, key="sort_cob")
+            sort_col = st.selectbox("Ordenar por:", df_cob.columns, index=0, key="sort_cob")
             sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True, key="order_cob")
-            df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
+            df_cob = df_cob.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
         df_view = pd.DataFrame()
-        df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-        df_view["Rec."] = df["Recomendação"]
-        df_view["Alvo"] = df.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
-        df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
-        df_view["Upside"] = df["Upside"].apply(color_pct)
-        df_view["Hoje"] = df["Hoje %"].apply(color_pct)
-        df_view["30D"] = df["30 Dias %"].apply(color_pct)
-        df_view["6M"] = df["6 Meses %"].apply(color_pct)
-        df_view["12M"] = df["12 Meses %"].apply(color_pct)
-        df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
+        df_view["Ticker"] = df_cob["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
+        df_view["Rec."] = df_cob["Recomendação"]
+        df_view["Alvo"] = df_cob.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
+        df_view["Preço"] = df_cob.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
+        df_view["Upside"] = df_cob["Upside"].apply(color_pct)
+        df_view["Hoje"] = df_cob["Hoje %"].apply(color_pct)
+        df_view["30D"] = df_cob["30 Dias %"].apply(color_pct)
+        df_view["6M"] = df_cob["6 Meses %"].apply(color_pct)
+        df_view["12M"] = df_cob["12 Meses %"].apply(color_pct)
+        df_view["Vol (MM)"] = df_cob["Vol (MM)"].apply(lambda x: format_br(x))
 
         st.markdown(f'<div class="desktop-view-container">{df_view.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
 
         mobile_html_cards = ""
-        for _, row in df.iterrows():
+        for _, row in df_cob.iterrows():
             c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
             mobile_html_cards += f"""
             <details class="mobile-card">
@@ -290,25 +292,26 @@ with tab_cobertura:
             </details>"""
         st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
     else:
-        st.error("Erro na conexão com Yahoo Finance. Tentando reconectar...")
+        st.warning("Sem dados para exibir na Cobertura.")
 
 with tab_setores:
     st.markdown('<span class="main-title">SETORES</span>', unsafe_allow_html=True)
-    st.markdown(f'<span class="sub-header">ACOMPANHAMENTO SETORIAL • {datetime.now().strftime("%d %b %Y")}</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="sub-header">DADOS SETORIAIS • {datetime.now().strftime("%d %b %Y")}</span>', unsafe_allow_html=True)
 
+    # Processar tickers únicos de todos os setores
     all_tickers_setores = []
     for t_list in SETORES_ACOMPANHAMENTO.values():
         all_tickers_setores.extend(t_list)
     
-    df_setores = get_stock_data(list(set(all_tickers_setores)))
+    df_all_setores = get_stock_data(list(set(all_tickers_setores)))
 
-    if not df_setores.empty:
+    if not df_all_setores.empty:
         pc_html_setores = '<div class="desktop-view-container"><table><thead><tr><th>Ticker</th><th>Preço</th><th>Hoje</th><th>30D</th><th>6M</th><th>12M</th><th>Vol (MM)</th></tr></thead><tbody>'
         mobile_html_setores = '<div class="mobile-wrapper">'
 
         for setor, tickers in SETORES_ACOMPANHAMENTO.items():
             tickers_limpos = [t.replace(".SA", "") for t in tickers]
-            df_sub = df_setores[df_setores['Ticker'].isin(tickers_limpos)]
+            df_sub = df_all_setores[df_all_setores['Ticker'].isin(tickers_limpos)]
             
             if not df_sub.empty:
                 pc_html_setores += f'<tr class="sector-divider-row"><td colspan="7">{setor}</td></tr>'
@@ -335,6 +338,8 @@ with tab_setores:
         mobile_html_setores += "</div>"
         st.markdown(pc_html_setores, unsafe_allow_html=True)
         st.markdown(mobile_html_setores, unsafe_allow_html=True)
+    else:
+        st.warning("Sem dados para exibir nos Setores.")
 
 time.sleep(60)
 st.rerun()
