@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS
+# DESIGN PREMIUM - CSS (FOCO EM MINIMALISMO)
 # =========================================================
 st.markdown("""
     <style>
@@ -44,8 +44,6 @@ st.markdown("""
             letter-spacing: 5px !important;
             display: block !important;
         }
-        
-        @media (max-width: 768px) { .sub-header { font-size: 10px !important; text-align: center; } }
 
         /* TABELA PC */
         .desktop-view-container table {
@@ -108,15 +106,22 @@ st.markdown("""
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; display:block;}
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
-        /* RESPONSIVIDADE */
+        /* RESPONSIVIDADE E BOTÃO POPOVER INVISÍVEL */
         @media (min-width: 769px) { .mobile-wrapper { display: none !important; } .desktop-view-container { display: block !important; } }
-        @media (max-width: 768px) { .desktop-view-container { display: none !important; } .mobile-wrapper { display: block !important; } [data-testid="stExpander"] { display: none !important; } }
+        @media (max-width: 768px) { .desktop-view-container { display: none !important; } .mobile-wrapper { display: block !important; } [data-testid="stPopover"] { display: none !important; } }
         
-        /* Ajuste do botão de ordenar para ser minimalista */
+        /* Torna o botão do popover fundido com o fundo preto */
+        div[data-testid="stPopover"] button {
+            background-color: #000000 !important;
+            border: 1px solid #111 !important;
+            color: #444 !important;
+            padding: 5px 10px !important;
+        }
+        
         div[data-testid="stPopover"] {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: -40px;
+            margin-bottom: -35px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -174,9 +179,7 @@ def get_stock_data(tickers):
                 "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
                 "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
                 "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
-                "5 Anos %": calculate_pct(days_ago=1825),
-                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0,
-                "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info and info.get('marketCap') else 0
+                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0
             })
         except: continue
     return pd.DataFrame(data_list)
@@ -191,9 +194,9 @@ st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().str
 df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
 if not df.empty:
-    # --- BOTÃO MINIMALISTA DE ORDENAÇÃO (CANTO DIREITO) ---
-    with st.popover("排序", help="Ordenar Tabela"):
-        sort_col = st.selectbox("Coluna:", df.columns, index=0)
+    # --- POPOVER MINIMALISTA (⚙️) ---
+    with st.popover("⚙️"):
+        sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
         sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
         df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
@@ -226,8 +229,8 @@ if not df.empty:
         <details class="mobile-card">
             <summary class="m-summary">
                 <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
-                <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444; font-family:'JetBrains Mono';">
-                    <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼ DETALHES</span>
+                <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
+                    <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼</span>
                 </div>
             </summary>
             <div class="m-grid">
