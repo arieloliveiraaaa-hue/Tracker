@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS FORÇADO (CORREÇÃO DE TAMANHO E COR)
+# DESIGN PREMIUM - CSS FORÇADO
 # =========================================================
 st.markdown("""
     <style>
@@ -26,10 +26,10 @@ st.markdown("""
             padding: 3rem 5rem !important;
         }
 
-        /* TÍTULO PRINCIPAL - FORÇADO PARA FICAR GIGANTE */
+        /* TÍTULO PRINCIPAL */
         .main-title {
             font-family: 'Inter', sans-serif !important;
-            font-size: 60px !important; /* Aumentado drasticamente */
+            font-size: 60px !important;
             font-weight: 900 !important;
             color: #FFFFFF !important;
             letter-spacing: -4px !important;
@@ -38,11 +38,11 @@ st.markdown("""
             display: block !important;
         }
 
-        /* TERMINAL DE DADOS - DESCRIÇÃO */
+        /* TERMINAL DE DADOS */
         .sub-header {
             font-family: 'JetBrains Mono', monospace !important;
             font-size: 15px !important;
-            color: #444 !important; /* Tom de cinza para não brigar com o título */
+            color: #444 !important;
             margin-top: 10px !important;
             margin-bottom: 60px !important;
             text-transform: uppercase !important;
@@ -58,17 +58,17 @@ st.markdown("""
             border: none !important;
         }
 
-        /* CABEÇALHOS - AGORA BRANCOS E VISÍVEIS */
+        /* CABEÇALHOS */
         th {
             background-color: #000000 !important;
-            color: #FFFFFF !important; /* Branco puro para os títulos das colunas */
+            color: #FFFFFF !important;
             font-size: 12px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
             letter-spacing: 1.5px !important;
             padding: 25px 15px !important;
             text-align: right !important;
-            border-bottom: 2px solid #333 !important; /* Linha de divisão mais clara */
+            border-bottom: 2px solid #333 !important;
             font-family: 'Inter', sans-serif !important;
         }
 
@@ -104,18 +104,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LÓGICA DE DADOS (MANTIDA 100% ORIGINAL)
+# LÓGICA DE DADOS (CORRIGIDA: ADICIONADO .SA NOS TICKERS)
 # =========================================================
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
     "VIVT3.SA": {"Rec": "Compra", "Alvo": 38.00},
     "CPLE3.SA": {"Rec": "Neutro", "Alvo": 11.00},
-    "AXIA6": {"Rec": "Compra", "Alvo": 59.00},
-    "ENGI3": {"Rec": "Compra", "Alvo": 46.00},
-    "TAEE11": {"Rec": "Compra", "Alvo": 34.00},
-    "EQTL3": {"Rec": "Compra", "Alvo": 35.00},
-    "RDOR3": {"Rec": "Compra", "Alvo": 34.00},
-    "HAPV3": {"Rec": "Compra", "Alvo": 64.80},
+    # Nota: AXIA6 tem pouca liquidez, se der erro, tente AXIA3.SA
+    "AXIA3.SA": {"Rec": "Compra", "Alvo": 59.00}, 
+    "ENGI3.SA": {"Rec": "Compra", "Alvo": 46.00},
+    "TAEE11.SA": {"Rec": "Compra", "Alvo": 34.00},
+    "EQTL3.SA": {"Rec": "Compra", "Alvo": 35.00},
+    "RDOR3.SA": {"Rec": "Compra", "Alvo": 34.00},
+    "HAPV3.SA": {"Rec": "Compra", "Alvo": 64.80},
 }
 
 refresh_interval = 60
@@ -132,14 +133,23 @@ def get_stock_data(tickers):
     for ticker in tickers:
         try:
             stock = yf.Ticker(ticker)
+            # Tenta pegar dados. Se o ticker estiver errado, volta vazio.
             hist = stock.history(period="6y", auto_adjust=True)
-            if hist.empty: continue
+            
+            if hist.empty: 
+                # Se falhar, pula para o próximo sem quebrar o app
+                print(f"Erro ao buscar dados para: {ticker}")
+                continue
+                
             hist = hist[hist['Close'] > 0].dropna()
             price_current = float(hist['Close'].iloc[-1])
             price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
+            
             info = stock.info
-            moeda = info.get('currency', 'BRL')
+            # Fallback para moeda caso info falhe
+            moeda = info.get('currency', 'BRL') if info else 'BRL'
             simbolo = "$" if moeda == "USD" else "R$" if moeda == "BRL" else moeda
+            
             dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
             preco_alvo = dados_manuais["Alvo"]
             upside = (preco_alvo / price_current - 1) * 100 if preco_alvo > 0 else 0.0
@@ -152,24 +162,36 @@ def get_stock_data(tickers):
                     return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
                 except: return 0.0
 
+            # Remove o .SA apenas visualmente para ficar bonito na tabela
+            ticker_visual = ticker.replace(".SA", "")
+
             data_list.append({
-                "Ticker": ticker, "Moeda": simbolo, "Preço": price_current,
-                "Recomendação": dados_manuais["Rec"], "Preço-Alvo": preco_alvo,
-                "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
-                "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
-                "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
+                "Ticker": ticker_visual, 
+                "Moeda": simbolo, 
+                "Preço": price_current,
+                "Recomendação": dados_manuais["Rec"], 
+                "Preço-Alvo": preco_alvo,
+                "Upside": upside, 
+                "Hoje %": ((price_current / price_prev_close) - 1) * 100,
+                "30 Dias %": calculate_pct(days_ago=30), 
+                "6 Meses %": calculate_pct(days_ago=180),
+                "12 Meses %": calculate_pct(days_ago=365), 
+                "YTD %": calculate_pct(is_ytd=True),
                 "5 Anos %": calculate_pct(days_ago=1825),
-                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000,
-                "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info.get('marketCap') else 0
+                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0,
+                "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info and info.get('marketCap') else 0
             })
-        except: continue
+        except Exception as e:
+            print(f"Erro genérico no ticker {ticker}: {e}")
+            continue
+            
     return pd.DataFrame(data_list)
 
 # =========================================================
 # RENDERIZAÇÃO FINAL
 # =========================================================
 
-# Título com classe específica para garantir o tamanho
+# Título
 st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
 st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")} • B3 REAL-TIME</span>', unsafe_allow_html=True)
 
@@ -179,7 +201,7 @@ df = get_stock_data(lista_tickers)
 if not df.empty:
     df_view = pd.DataFrame()
     
-    # Injeção de tags HTML para os estilos definidos no CSS acima
+    # Injeção de tags HTML para os estilos
     df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
     df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
     df_view["Recomendação"] = df["Recomendação"]
@@ -201,8 +223,10 @@ if not df.empty:
     df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
     df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
 
-    # Renderização da tabela via HTML puro para controle absoluto do estilo
+    # Renderização da tabela
     st.write(df_view.to_html(escape=False, index=False), unsafe_allow_html=True)
     
     time.sleep(refresh_interval)
     st.rerun()
+else:
+    st.warning("Nenhum dado encontrado. Verifique sua conexão ou os Tickers informados.")
