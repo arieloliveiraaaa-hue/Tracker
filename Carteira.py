@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS AJUSTADO (ESPAÇAMENTO E ORDEM)
+# DESIGN PREMIUM - CSS AJUSTADO
 # =========================================================
 st.markdown("""
     <style>
@@ -16,10 +16,30 @@ st.markdown("""
 
         .stApp { background-color: #000000 !important; }
         header, footer, #MainMenu {visibility: hidden;}
-        .block-container { padding: 3rem 5rem !important; }
+        .block-container { padding: 1rem 5rem !important; }
         
         @media (max-width: 768px) {
             .block-container { padding: 1rem 0.5rem !important; }
+        }
+
+        /* Estilo para Abas (Menu) */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 20px;
+            background-color: transparent;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 40px;
+            background-color: transparent !important;
+            border: none !important;
+            color: #444 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 13px !important;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .stTabs [aria-selected="true"] {
+            color: #FFFFFF !important;
+            border-bottom: 2px solid #FFFFFF !important;
         }
 
         .main-title {
@@ -30,6 +50,7 @@ st.markdown("""
             letter-spacing: -4px !important;
             line-height: 1 !important;
             display: block !important;
+            margin-top: 20px;
         }
         
         @media (max-width: 768px) { .main-title { font-size: 32px !important; text-align: center; } }
@@ -45,18 +66,12 @@ st.markdown("""
             display: block !important;
         }
 
-        /* TABELA PC - COM PADDING PARA NÃO CORTAR O BOTÃO */
-        .desktop-view-container {
-            padding-top: 40px !important;
-        }
-
+        .desktop-view-container { padding-top: 40px !important; }
         .desktop-view-container table {
             width: 100% !important;
             border-collapse: collapse !important;
             background-color: #000000 !important;
-            border: none !important;
         }
-
         .desktop-view-container th {
             background-color: #000000 !important;
             color: #FFFFFF !important;
@@ -68,7 +83,6 @@ st.markdown("""
             border-bottom: 2px solid #222 !important;
             font-family: 'Inter', sans-serif !important;
         }
-
         .desktop-view-container td {
             padding: 18px 10px !important;
             border-bottom: 1px solid #111 !important;
@@ -78,34 +92,36 @@ st.markdown("""
             font-family: 'Inter', sans-serif !important;
             text-align: center !important;
         }
+        
+        /* Linha separadora de Setor */
+        .sector-divider-row td {
+            background-color: #0a0a0a !important;
+            color: #444 !important;
+            font-weight: 700 !important;
+            text-align: left !important;
+            padding: 10px 20px !important;
+            font-size: 11px !important;
+            letter-spacing: 3px !important;
+            text-transform: uppercase !important;
+            border-bottom: 1px solid #222 !important;
+        }
 
         .desktop-view-container tr:nth-child(even) td { background-color: #050505 !important; }
         .ticker-style { font-weight: 900 !important; color: #FFFFFF !important; }
 
-        /* MOBILE CARDS - ESPAÇAMENTO AJUSTADO */
-        .mobile-wrapper {
-            padding-top: 30px !important;
+        .mobile-wrapper { padding-top: 30px !important; }
+        .mobile-sector-label {
+            color: #444; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+            margin: 25px 0 10px 5px; font-family: 'JetBrains Mono';
         }
-
         details.mobile-card {
-            background-color: #0a0a0a;
-            border: 1px solid #222;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a; border: 1px solid #222; border-radius: 8px;
+            margin-bottom: 10px; overflow: hidden; font-family: 'Inter', sans-serif;
         }
-
         summary.m-summary {
-            padding: 15px;
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            background-color: #0e0e0e;
+            padding: 15px; cursor: pointer; list-style: none;
+            display: flex; flex-direction: column; gap: 5px; background-color: #0e0e0e;
         }
-
         summary.m-summary::-webkit-details-marker { display: none; }
         .m-header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .m-ticker { font-size: 18px; font-weight: 900; color: #fff; }
@@ -114,22 +130,11 @@ st.markdown("""
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; display:block;}
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
-        /* RESPONSIVIDADE E BOTÃO POPOVER */
         @media (min-width: 769px) { .mobile-wrapper { display: none !important; } .desktop-view-container { display: block !important; } }
         @media (max-width: 768px) { .desktop-view-container { display: none !important; } .mobile-wrapper { display: block !important; } [data-testid="stPopover"] { display: none !important; } }
         
-        div[data-testid="stPopover"] button {
-            background-color: #000000 !important;
-            border: 1px solid #222 !important;
-            color: #444 !important;
-            padding: 5px 12px !important;
-        }
-        
-        div[data-testid="stPopover"] {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: -10px; /* Ajustado para não sobrepor */
-        }
+        div[data-testid="stPopover"] button { background-color: #000000 !important; border: 1px solid #222 !important; color: #444 !important; padding: 5px 12px !important; }
+        div[data-testid="stPopover"] { display: flex; justify-content: flex-end; margin-bottom: -10px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -148,12 +153,38 @@ MINHA_COBERTURA = {
     "HAPV3.SA": {"Rec": "Compra", "Alvo": 64.80},
 }
 
+SETORES_ACOMPANHAMENTO = {
+    "IBOV": ["^BVSP"],
+    "Varejo e Bens de Consumo": ["AZZA3.SA", "LREN3.SA", "CEAB3.SA", "GUAR3.SA", "TFCO4.SA", "VIVA3.SA", "SBFG3.SA", "MELI", "MGLU3.SA", "BHIA3.SA", "ASAI3.SA", "GMAT3.SA", "PCAR3.SA", "SMFT3.SA", "NATU3.SA", "AUAU3.SA", "VULC3.SA", "ALPA4.SA"],
+    "Farmácias e Farmacêuticas": ["RADL3.SA", "PGMN3.SA", "PNVL3.SA", "DMVF3.SA", "PFRM3.SA", "HYPE3.SA", "BLAU3.SA"],
+    "Shoppings": ["MULT3.SA", "ALOS3.SA", "IGTI11.SA"],
+    "Agronegócio e Proteínas": ["AGRO3.SA", "SLCE3.SA", "ABEV3.SA", "MDIA3.SA", "JBS", "MBRF3.SA", "BEEF3.SA", "SMTO3.SA", "KEPL3.SA"],
+    "Bens de Capital": ["WEGE3.SA", "EMBJ3.SA", "LEVE3.SA", "TUPY3.SA", "MYPK3.SA", "FRAS3.SA", "RAPT4.SA", "POMO4.SA"],
+    "Transporte e Logística": ["RENT3.SA", "MOVI3.SA", "VAMO3.SA", "RAIL3.SA", "SIMH3.SA"],
+    "Bancos e Financeiras": ["ITUB4.SA", "BBDC4.SA", "BBAS3.SA", "SANB11.SA", "NU", "BPAC11.SA", "XP", "INTR", "PAGS", "BRSR6.SA", "B3SA3.SA", "BBSE3.SA", "PSSA3.SA", "CXSE3.SA"],
+    "Educação": ["YDUQ3.SA", "COGN3.SA", "ANIM3.SA", "SEER3.SA"],
+    "Energia Elétrica": ["AXIA3.SA", "AURE3.SA", "EQTL3.SA", "EGIE3.SA", "TAEE11.SA", "ENEV3.SA", "CMIG4.SA", "CPLE3.SA", "CPFE3.SA", "ENGI11.SA", "ISA4.SA", "ALUP11.SA"],
+    "Água e Saneamento": ["SBSP3.SA", "SAPR11.SA", "CSMG3.SA", "ORVR3.SA"],
+    "Concessões": ["MOTV3.SA", "ECOR3.SA"],
+    "Saúde": ["RDOR3.SA", "HAPV3.SA", "ODPV3.SA", "MATD3.SA", "FLRY3.SA"],
+    "Tech e Telecom": ["VIVT3.SA", "TIMS3.SA", "TOTS3.SA", "LWSA3.SA"],
+    "Construção e Real Estate": ["EZTC3.SA", "CYRE3.SA", "MRVE3.SA", "MDNE3.SA", "TEND3.SA", "MTRE3.SA", "PLPL3.SA", "DIRR3.SA", "CURY3.SA", "JHSF3.SA"],
+    "Serviços": ["OPCT3.SA", "GGPS3.SA"],
+    "Petróleo, Gás e Distribuição": ["PETR4.SA", "PRIO3.SA", "BRAV3.SA", "RECV3.SA", "CSAN3.SA", "VBBR3.SA", "UGPA3.SA"],
+    "Mineração e Siderurgia": ["VALE3.SA", "CSNA3.SA", "USIM5.SA", "GGBR4.SA", "GOAU4.SA", "CMIN3.SA", "BRAP4.SA"],
+    "Papel, Celulose e Químicos": ["SUZB3.SA", "KLBN11.SA", "RANI3.SA", "UNIP6.SA", "DEXP3.SA"]
+}
+
 def format_br(val, is_pct=False, moeda_sym=""):
     if pd.isna(val) or (val == 0 and not is_pct): return "-"
     formatted = "{:,.2f}".format(val).replace(",", "X").replace(".", ",").replace("X", ".")
     if is_pct: return f"{formatted}%"
     if moeda_sym: return f"{moeda_sym} {formatted}"
     return formatted
+
+def color_pct(val):
+    color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
+    return f'<span style="color: {color}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
 
 def get_stock_data(tickers):
     data_list = []
@@ -192,63 +223,119 @@ def get_stock_data(tickers):
     return pd.DataFrame(data_list)
 
 # =========================================================
-# UI
+# UI PRINCIPAL
 # =========================================================
 
-st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
-st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
+# Menu Superior Minimalista
+tab_cobertura, tab_setores = st.tabs(["Cobertura", "Setores"])
 
-df = get_stock_data(list(MINHA_COBERTURA.keys()))
+with tab_cobertura:
+    st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
 
-if not df.empty:
-    # --- POPOVER MINIMALISTA ---
-    with st.popover("⚙️"):
-        sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
-        sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
-        df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
+    df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
-    # --- PC VIEW (ORDEM REORGANIZADA) ---
-    df_view = pd.DataFrame()
-    df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-    df_view["Rec."] = df["Recomendação"]
-    df_view["Alvo"] = df.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
-    df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
+    if not df.empty:
+        with st.popover("⚙️"):
+            sort_col = st.selectbox("Ordenar por:", df.columns, index=0, key="sort_cob")
+            sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True, key="order_cob")
+            df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
-    def color_pct(val):
-        color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
-        return f'<span style="color: {color}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
+        # --- PC VIEW ---
+        df_view = pd.DataFrame()
+        df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
+        df_view["Rec."] = df["Recomendação"]
+        df_view["Alvo"] = df.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
+        df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
+        df_view["Upside"] = df["Upside"].apply(color_pct)
+        df_view["Hoje"] = df["Hoje %"].apply(color_pct)
+        df_view["30D"] = df["30 Dias %"].apply(color_pct)
+        df_view["6M"] = df["6 Meses %"].apply(color_pct)
+        df_view["12M"] = df["12 Meses %"].apply(color_pct)
+        df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
 
-    df_view["Upside"] = df["Upside"].apply(color_pct)
-    df_view["Hoje"] = df["Hoje %"].apply(color_pct)
-    df_view["30D"] = df["30 Dias %"].apply(color_pct)
-    df_view["6M"] = df["6 Meses %"].apply(color_pct)
-    df_view["12M"] = df["12 Meses %"].apply(color_pct)
-    df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
+        st.markdown(f'<div class="desktop-view-container">{df_view.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div class="desktop-view-container">{df_view.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
-
-    # --- MOBILE VIEW ---
-    mobile_html_cards = ""
-    for _, row in df.iterrows():
-        c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
-        
-        mobile_html_cards += f"""
-        <details class="mobile-card">
-            <summary class="m-summary">
-                <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
-                <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
-                    <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼</span>
+        # --- MOBILE VIEW ---
+        mobile_html_cards = ""
+        for _, row in df.iterrows():
+            c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
+            mobile_html_cards += f"""
+            <details class="mobile-card">
+                <summary class="m-summary">
+                    <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
+                    <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
+                        <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼</span>
+                    </div>
+                </summary>
+                <div class="m-grid">
+                    <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
+                    <div class="m-item"><span class="m-label">Upside</span><span class="m-value">{format_br(row['Upside'], is_pct=True)}</span></div>
+                    <div class="m-item"><span class="m-label">Rec.</span><span class="m-value">{row['Recomendação']}</span></div>
+                    <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
                 </div>
-            </summary>
-            <div class="m-grid">
-                <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
-                <div class="m-item"><span class="m-label">Upside</span><span class="m-value">{format_br(row['Upside'], is_pct=True)}</span></div>
-                <div class="m-item"><span class="m-label">Rec.</span><span class="m-value">{row['Recomendação']}</span></div>
-                <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
-            </div>
-        </details>"""
+            </details>"""
+        st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
+with tab_setores:
+    st.markdown('<span class="main-title">SETORES</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="sub-header">ACOMPANHAMENTO SETORIAL • {datetime.now().strftime("%d %b %Y")}</span>', unsafe_allow_html=True)
+
+    all_tickers = []
+    for t_list in SETORES_ACOMPANHAMENTO.values(): all_tickers.extend(t_list)
     
-    time.sleep(60)
-    st.rerun()
+    df_setores = get_stock_data(list(set(all_tickers)))
+
+    if not df_setores.empty:
+        # Lógica de agrupamento por setor para PC
+        pc_html_setores = '<div class="desktop-view-container"><table><thead><tr><th>Ticker</th><th>Preço</th><th>Hoje</th><th>30D</th><th>6M</th><th>12M</th><th>Vol (MM)</th></tr></thead><tbody>'
+        
+        # Lógica para Mobile
+        mobile_html_setores = '<div class="mobile-wrapper">'
+
+        for setor, tickers in SETORES_ACOMPANHAMENTO.items():
+            tickers_limpos = [t.replace(".SA", "") for t in tickers]
+            df_sub = df_setores[df_setores['Ticker'].isin(tickers_limpos)]
+            
+            if not df_sub.empty:
+                # Add linha de setor no PC
+                pc_html_setores += f'<tr class="sector-divider-row"><td colspan="7">{setor}</td></tr>'
+                # Add label de setor no Mobile
+                mobile_html_setores += f'<div class="mobile-sector-label">{setor}</div>'
+
+                for _, row in df_sub.iterrows():
+                    # PC Row
+                    pc_html_setores += f"""
+                    <tr>
+                        <td><span class="ticker-style">{row['Ticker']}</span></td>
+                        <td>{format_br(row['Preço'], moeda_sym=row['Moeda'])}</td>
+                        <td>{color_pct(row['Hoje %'])}</td>
+                        <td>{color_pct(row['30 Dias %'])}</td>
+                        <td>{color_pct(row['6 Meses %'])}</td>
+                        <td>{color_pct(row['12 Meses %'])}</td>
+                        <td>{format_br(row['Vol (MM)'])}</td>
+                    </tr>
+                    """
+                    # Mobile Card
+                    c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
+                    mobile_html_setores += f"""
+                    <details class="mobile-card">
+                        <summary class="m-summary">
+                            <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
+                        </summary>
+                        <div class="m-grid">
+                            <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
+                            <div class="m-item"><span class="m-label">30D</span><span class="m-value">{format_br(row['30 Dias %'], is_pct=True)}</span></div>
+                            <div class="m-item"><span class="m-label">6M</span><span class="m-value">{format_br(row['6 Meses %'], is_pct=True)}</span></div>
+                            <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
+                        </div>
+                    </details>"""
+        
+        pc_html_setores += "</tbody></table></div>"
+        mobile_html_setores += "</div>"
+        
+        st.markdown(pc_html_setores, unsafe_allow_html=True)
+        st.markdown(mobile_html_setores, unsafe_allow_html=True)
+
+time.sleep(60)
+st.rerun()
