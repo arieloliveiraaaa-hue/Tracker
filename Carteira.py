@@ -150,6 +150,20 @@ st.markdown("""
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; display:block;}
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
+        /* --- MOBILE: HEADER DE SETOR (NOVO) --- */
+        .m-sector {
+            margin: 14px 0 10px 0;
+            padding: 10px 12px;
+            border-top: 2px solid #222;
+            border-bottom: 1px solid #111;
+            color: #444;
+            background-color: #000;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            font-size: 11px;
+        }
+
         /* RESPONSIVIDADE E BOTÃO POPOVER */
         @media (min-width: 769px) { .mobile-wrapper { display: none !important; } .desktop-view-container { display: block !important; } }
         @media (max-width: 768px) { .desktop-view-container { display: none !important; } .mobile-wrapper { display: block !important; } [data-testid="stPopover"] { display: none !important; } }
@@ -261,14 +275,11 @@ def get_stock_data(tickers):
         except:
             continue
 
-        # normaliza
         if isinstance(raw.columns, pd.MultiIndex):
-            # caso mais comum: (PriceField, Ticker)
             if "Close" in raw.columns.get_level_values(0):
                 close_df = raw["Close"]
                 vol_df = raw["Volume"] if "Volume" in raw.columns.get_level_values(0) else None
             else:
-                # fallback: (Ticker, PriceField)
                 close_df = raw.xs("Close", axis=1, level=1, drop_level=False)
                 close_df.columns = close_df.columns.get_level_values(0)
                 vol_df = raw.xs("Volume", axis=1, level=1, drop_level=False) if ("Volume" in raw.columns.get_level_values(1)) else None
@@ -430,13 +441,19 @@ if page == "setores":
         table_html = f"<table>{thead}{tbody}</table>"
         st.markdown(f'<div class="desktop-view-container">{table_html}</div>', unsafe_allow_html=True)
 
+        # --- MOBILE VIEW (SETORES) COM SEPARADORES ---
         mobile_html_cards = ""
+        last_sector = None
         for sector, t in ordered_pairs:
             k = display_ticker_key(t)
             if k not in df_map:
                 continue
             row = df_map[k]
             c_price = "#00FF95" if float(row['Hoje %']) > 0 else "#FF4B4B" if float(row['Hoje %']) < 0 else "#FFFFFF"
+
+            if sector != last_sector:
+                mobile_html_cards += f'<div class="m-sector">{sector}</div>'
+                last_sector = sector
 
             mobile_html_cards += f"""
             <details class="mobile-card">
