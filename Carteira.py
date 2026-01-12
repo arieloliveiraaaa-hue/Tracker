@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS (FOCO EM MINIMALISMO)
+# DESIGN PREMIUM - CSS AJUSTADO (ESPAÇAMENTO E ORDEM)
 # =========================================================
 st.markdown("""
     <style>
@@ -45,7 +45,11 @@ st.markdown("""
             display: block !important;
         }
 
-        /* TABELA PC */
+        /* TABELA PC - COM PADDING PARA NÃO CORTAR O BOTÃO */
+        .desktop-view-container {
+            padding-top: 40px !important;
+        }
+
         .desktop-view-container table {
             width: 100% !important;
             border-collapse: collapse !important;
@@ -78,7 +82,11 @@ st.markdown("""
         .desktop-view-container tr:nth-child(even) td { background-color: #050505 !important; }
         .ticker-style { font-weight: 900 !important; color: #FFFFFF !important; }
 
-        /* MOBILE CARDS */
+        /* MOBILE CARDS - ESPAÇAMENTO AJUSTADO */
+        .mobile-wrapper {
+            padding-top: 30px !important;
+        }
+
         details.mobile-card {
             background-color: #0a0a0a;
             border: 1px solid #222;
@@ -106,22 +114,21 @@ st.markdown("""
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; display:block;}
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
-        /* RESPONSIVIDADE E BOTÃO POPOVER INVISÍVEL */
+        /* RESPONSIVIDADE E BOTÃO POPOVER */
         @media (min-width: 769px) { .mobile-wrapper { display: none !important; } .desktop-view-container { display: block !important; } }
         @media (max-width: 768px) { .desktop-view-container { display: none !important; } .mobile-wrapper { display: block !important; } [data-testid="stPopover"] { display: none !important; } }
         
-        /* Torna o botão do popover fundido com o fundo preto */
         div[data-testid="stPopover"] button {
             background-color: #000000 !important;
-            border: 1px solid #111 !important;
+            border: 1px solid #222 !important;
             color: #444 !important;
-            padding: 5px 10px !important;
+            padding: 5px 12px !important;
         }
         
         div[data-testid="stPopover"] {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: -35px;
+            margin-bottom: -10px; /* Ajustado para não sobrepor */
         }
     </style>
 """, unsafe_allow_html=True)
@@ -194,18 +201,18 @@ st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().str
 df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
 if not df.empty:
-    # --- POPOVER MINIMALISTA (⚙️) ---
+    # --- POPOVER MINIMALISTA ---
     with st.popover("⚙️"):
         sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
         sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
         df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
-    # --- PC VIEW ---
+    # --- PC VIEW (ORDEM REORGANIZADA) ---
     df_view = pd.DataFrame()
     df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-    df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
     df_view["Rec."] = df["Recomendação"]
     df_view["Alvo"] = df.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
+    df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
 
     def color_pct(val):
         color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
