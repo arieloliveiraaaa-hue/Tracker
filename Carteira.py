@@ -257,23 +257,55 @@ def display_ticker_key(ticker: str) -> str:
     return ticker.replace(".SA", "")
 
 # =========================================================
-# MENU (PÁGINAS)
+# MENU (PÁGINAS) - SEM RELOAD DE PÁGINA (SEM <a href=...>)
 # =========================================================
-qp = st.experimental_get_query_params()
-page = (qp.get("page", ["cobertura"])[0] or "cobertura").lower().strip()
+if "page" not in st.session_state:
+    st.session_state.page = "Cobertura"
 
-active_cov = "active" if page != "setores" else ""
-active_set = "active" if page == "setores" else ""
+# mantém o mesmo visual minimalista do seu menu
+st.markdown('<div class="top-nav">', unsafe_allow_html=True)
 
-st.markdown(
-    f"""
-    <div class="top-nav">
-        <a class="{active_cov}" href="?page=cobertura">Cobertura</a>
-        <a class="{active_set}" href="?page=setores">Setores</a>
-    </div>
-    """,
-    unsafe_allow_html=True
+choice = st.radio(
+    "",
+    ["Cobertura", "Setores"],
+    horizontal=True,
+    key="__nav_page",
+    label_visibility="collapsed",
+    index=0 if st.session_state.page == "Cobertura" else 1
 )
+
+st.session_state.page = choice
+st.markdown("</div>", unsafe_allow_html=True)
+
+page = "setores" if st.session_state.page == "Setores" else "cobertura"
+
+# (opcional) CSS extra só para o radio parecer link (não mexe no resto)
+st.markdown("""
+<style>
+/* deixa o radio com cara de menu (minimal) */
+div[data-testid="stRadio"] > div {
+    gap: 18px !important;
+}
+div[data-testid="stRadio"] label {
+    margin: 0 !important;
+}
+div[data-testid="stRadio"] label > div:first-child { display:none !important; } /* esconde bolinha */
+div[data-testid="stRadio"] label > div:last-child {
+    font-family: 'JetBrains Mono', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 4px !important;
+    font-size: 12px !important;
+    color: #444 !important;
+    padding-bottom: 6px !important;
+    border-bottom: 1px solid transparent !important;
+}
+div[data-testid="stRadio"] label[data-checked="true"] > div:last-child {
+    color: #FFFFFF !important;
+    border-bottom: 1px solid #222 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # =========================================================
 # UI
