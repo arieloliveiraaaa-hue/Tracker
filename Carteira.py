@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import time
+import requests
 
 # Configuração da página
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
@@ -139,8 +140,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LÓGICA DE DADOS
+# LÓGICA DE DADOS (CORREÇÃO DE CONEXÃO)
 # =========================================================
+
+# Criar uma sessão para evitar o erro 401 Unauthorized
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+})
+
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
     "VIVT3.SA": {"Rec": "Compra", "Alvo": 38.00},
@@ -190,14 +198,22 @@ def get_stock_data(tickers):
     data_list = []
     for ticker in tickers:
         try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="6y", auto_adjust=True)
+            stock = yf.Ticker(ticker, session=session)
+            hist = stock.history(period="1y", auto_adjust=True)
             if hist.empty: continue
-            hist = hist[hist['Close'] > 0].dropna()
+            
             price_current = float(hist['Close'].iloc[-1])
             price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
-            info = stock.info
-            moeda = info.get('currency', 'BRL') if info else 'BRL'
+            
+            # Tenta pegar info, se der erro, usa defaults para não quebrar a página
+            try:
+                info = stock.info
+                moeda = info.get('currency', 'BRL')
+                vol = float(info.get('regularMarketVolume', 0)) / 1_000_000
+            except:
+                moeda = 'BRL'
+                vol = 0
+                
             simbolo = "$" if moeda == "USD" else "R$" if moeda == "BRL" else moeda
             dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
             preco_alvo = dados_manuais["Alvo"]
@@ -206,8 +222,7 @@ def get_stock_data(tickers):
             def calculate_pct(days_ago=None, is_ytd=False):
                 try:
                     target_date = datetime(datetime.now().year, 1, 1) if is_ytd else datetime.now() - timedelta(days=days_ago)
-                    target_ts = pd.Timestamp(target_date).tz_localize(hist.index.tz)
-                    idx = hist.index.get_indexer([target_ts], method='pad')[0]
+                    idx = hist.index.get_indexer([target_date], method='pad')[0]
                     return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
                 except: return 0.0
 
@@ -217,9 +232,10 @@ def get_stock_data(tickers):
                 "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
                 "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
                 "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
-                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0
+                "Vol (MM)": vol
             })
-        except: continue
+        except Exception as e:
+            continue
     return pd.DataFrame(data_list)
 
 # =========================================================
@@ -273,12 +289,13 @@ with tab_cobertura:
                 </div>
             </details>"""
         st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
+    else:
+        st.error("Erro na conexão com Yahoo Finance. Tentando reconectar...")
 
 with tab_setores:
     st.markdown('<span class="main-title">SETORES</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">ACOMPANHAMENTO SETORIAL • {datetime.now().strftime("%d %b %Y")}</span>', unsafe_allow_html=True)
 
-    # Pegamos todos os tickers únicos de todos os setores
     all_tickers_setores = []
     for t_list in SETORES_ACOMPANHAMENTO.values():
         all_tickers_setores.extend(t_list)
@@ -286,9 +303,7 @@ with tab_setores:
     df_setores = get_stock_data(list(set(all_tickers_setores)))
 
     if not df_setores.empty:
-        # Construção manual da tabela para Desktop
         pc_html_setores = '<div class="desktop-view-container"><table><thead><tr><th>Ticker</th><th>Preço</th><th>Hoje</th><th>30D</th><th>6M</th><th>12M</th><th>Vol (MM)</th></tr></thead><tbody>'
-        
         mobile_html_setores = '<div class="mobile-wrapper">'
 
         for setor, tickers in SETORES_ACOMPANHAMENTO.items():
@@ -296,25 +311,12 @@ with tab_setores:
             df_sub = df_setores[df_setores['Ticker'].isin(tickers_limpos)]
             
             if not df_sub.empty:
-                # Divisor de Setor PC
                 pc_html_setores += f'<tr class="sector-divider-row"><td colspan="7">{setor}</td></tr>'
-                # Divisor de Setor Mobile
                 mobile_html_setores += f'<div class="mobile-sector-label">{setor}</div>'
 
                 for _, row in df_sub.iterrows():
-                    # Linha PC
-                    pc_html_setores += f"""
-                    <tr>
-                        <td><span class="ticker-style">{row['Ticker']}</span></td>
-                        <td>{row['Moeda']} {format_br(row['Preço'])}</td>
-                        <td>{color_pct(row['Hoje %'])}</td>
-                        <td>{color_pct(row['30 Dias %'])}</td>
-                        <td>{color_pct(row['6 Meses %'])}</td>
-                        <td>{color_pct(row['12 Meses %'])}</td>
-                        <td>{format_br(row['Vol (MM)'])}</td>
-                    </tr>"""
+                    pc_html_setores += f"<tr><td><span class='ticker-style'>{row['Ticker']}</span></td><td>{row['Moeda']} {format_br(row['Preço'])}</td><td>{color_pct(row['Hoje %'])}</td><td>{color_pct(row['30 Dias %'])}</td><td>{color_pct(row['6 Meses %'])}</td><td>{color_pct(row['12 Meses %'])}</td><td>{format_br(row['Vol (MM)'])}</td></tr>"
                     
-                    # Card Mobile
                     c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
                     mobile_html_setores += f"""
                     <details class="mobile-card">
@@ -331,8 +333,6 @@ with tab_setores:
         
         pc_html_setores += "</tbody></table></div>"
         mobile_html_setores += "</div>"
-        
-        # Renderização final (O ERRO ESTAVA AQUI: PRECISAVA SER ST.MARKDOWN)
         st.markdown(pc_html_setores, unsafe_allow_html=True)
         st.markdown(mobile_html_setores, unsafe_allow_html=True)
 
