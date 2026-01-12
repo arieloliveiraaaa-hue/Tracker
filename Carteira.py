@@ -103,8 +103,6 @@ st.markdown("""
         /* =========================================================================
            ESTILOS DA VERSÃO MOBILE (ACCORDION/MINIMIZADO)
            ========================================================================= */
-        
-        /* O container do accordion */
         details.mobile-card {
             background-color: #0a0a0a;
             border: 1px solid #222;
@@ -112,77 +110,45 @@ st.markdown("""
             margin-bottom: 10px;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
-            transition: all 0.3s ease;
         }
 
-        /* O cabeçalho visível (Resumo) */
         summary.m-summary {
             padding: 15px;
             cursor: pointer;
-            list-style: none; /* Remove a seta padrão feia */
+            list-style: none;
             display: flex;
             flex-direction: column;
             gap: 5px;
             background-color: #0e0e0e;
         }
 
-        /* Remove a seta padrão no Chrome/Safari */
-        summary.m-summary::-webkit-details-marker {
-            display: none;
-        }
+        summary.m-summary::-webkit-details-marker { display: none; }
 
-        .m-header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .m-header-sub {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            font-size: 12px;
-            color: #666;
-            font-family: 'JetBrains Mono', monospace;
-        }
+        .m-header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .m-header-sub { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 12px; color: #666; font-family: 'JetBrains Mono', monospace; }
 
         .m-ticker { font-size: 18px; font-weight: 900; color: #fff; }
         .m-price { font-size: 18px; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; }
         
-        /* Área expandida */
-        .m-content {
-            padding: 15px;
-            border-top: 1px solid #222;
-            background-color: #000;
-        }
-
-        .m-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
+        .m-content { padding: 15px; border-top: 1px solid #222; background-color: #000; }
+        .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         
         .m-item { display: flex; flex-direction: column; }
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
-        /* Indicador visual de abrir/fechar (opcional, um pequeno + ou seta customizada via CSS se quisesse, mas deixei limpo) */
-
         /* =========================================================================
            CONTROLE DE VISIBILIDADE
            ========================================================================= */
         @media (min-width: 769px) {
-            .mobile-view-container { display: none !important; }
-            .desktop-view-container { display: block !important; }
+            .mobile-view-container { display: block !important; }
+            .mobile-wrapper { display: none !important; }
         }
 
         @media (max-width: 768px) {
-            .mobile-view-container { display: block !important; }
             .desktop-view-container { display: none !important; }
+            .mobile-wrapper { display: block !important; }
         }
-
     </style>
 """, unsafe_allow_html=True)
 
@@ -217,15 +183,12 @@ def get_stock_data(tickers):
             stock = yf.Ticker(ticker)
             hist = stock.history(period="6y", auto_adjust=True)
             if hist.empty: continue
-                
             hist = hist[hist['Close'] > 0].dropna()
             price_current = float(hist['Close'].iloc[-1])
             price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
-            
             info = stock.info
             moeda = info.get('currency', 'BRL') if info else 'BRL'
             simbolo = "$" if moeda == "USD" else "R$" if moeda == "BRL" else moeda
-            
             dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
             preco_alvo = dados_manuais["Alvo"]
             upside = (preco_alvo / price_current - 1) * 100 if preco_alvo > 0 else 0.0
@@ -239,32 +202,23 @@ def get_stock_data(tickers):
                 except: return 0.0
 
             ticker_visual = ticker.replace(".SA", "")
-
             data_list.append({
-                "Ticker": ticker_visual, 
-                "Moeda": simbolo, 
-                "Preço": price_current,
-                "Recomendação": dados_manuais["Rec"], 
-                "Preço-Alvo": preco_alvo,
-                "Upside": upside, 
-                "Hoje %": ((price_current / price_prev_close) - 1) * 100,
-                "30 Dias %": calculate_pct(days_ago=30), 
-                "6 Meses %": calculate_pct(days_ago=180),
-                "12 Meses %": calculate_pct(days_ago=365), 
-                "YTD %": calculate_pct(is_ytd=True),
+                "Ticker": ticker_visual, "Moeda": simbolo, "Preço": price_current,
+                "Recomendação": dados_manuais["Rec"], "Preço-Alvo": preco_alvo,
+                "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
+                "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
+                "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
                 "5 Anos %": calculate_pct(days_ago=1825),
                 "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0,
                 "Mkt Cap (MM)": float(info.get('marketCap', 0)) / 1_000_000 if info and info.get('marketCap') else 0
             })
-        except Exception:
-            continue
+        except: continue
     return pd.DataFrame(data_list)
 
 # =========================================================
-# RENDERIZAÇÃO FINAL
+# RENDERIZAÇÃO
 # =========================================================
 
-# Título
 st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
 st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")} • B3 REAL-TIME</span>', unsafe_allow_html=True)
 
@@ -272,10 +226,7 @@ lista_tickers = list(MINHA_COBERTURA.keys())
 df = get_stock_data(lista_tickers)
 
 if not df.empty:
-    
-    # -----------------------------------------------------
-    # VERSÃO DESKTOP
-    # -----------------------------------------------------
+    # DESKTOP
     df_desktop = pd.DataFrame()
     df_desktop["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
     df_desktop["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
@@ -297,71 +248,41 @@ if not df.empty:
     df_desktop["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
     df_desktop["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
 
-    html_table = df_desktop.to_html(escape=False, index=False)
-
-    # -----------------------------------------------------
-    # VERSÃO MOBILE (ACCORDION HTML5)
-    # -----------------------------------------------------
+    # MOBILE
     mobile_html_cards = ""
-    
     for index, row in df.iterrows():
         color_upside = "#00FF95" if row['Upside'] > 0 else "#FF4B4B" if row['Upside'] < 0 else "#666"
         color_day = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#666"
         
-        # Formata Strings
-        str_preco = f"{row['Moeda']} {format_br(row['Preço'])}"
-        str_alvo = f"Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}"
-        
-        # Monta o bloco HTML
-        card = f"""
+        mobile_html_cards += f"""
         <details class="mobile-card">
             <summary class="m-summary">
                 <div class="m-header-top">
                     <span class="m-ticker">{row['Ticker']}</span>
-                    <span class="m-price">{str_preco}</span>
+                    <span class="m-price">{row['Moeda']} {format_br(row['Preço'])}</span>
                 </div>
                 <div class="m-header-sub">
-                    <span>{str_alvo}</span>
-                    <span style="font-size:10px;">▼ ver mais</span>
+                    <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span>
+                    <span style="font-size:10px; color:#444;">▼ DETALHES</span>
                 </div>
             </summary>
             <div class="m-content">
                 <div class="m-grid">
-                    <div class="m-item">
-                        <span class="m-label">Variação Hoje</span>
-                        <span class="m-value" style="color: {color_day}">{format_br(row['Hoje %'], is_pct=True)}</span>
-                    </div>
-                    <div class="m-item">
-                        <span class="m-label">Upside</span>
-                        <span class="m-value" style="color: {color_upside}">{format_br(row['Upside'], is_pct=True)}</span>
-                    </div>
-                    <div class="m-item">
-                        <span class="m-label">Recomendação</span>
-                        <span class="m-value" style="color: #FFF">{row['Recomendação']}</span>
-                    </div>
-                    <div class="m-item">
-                        <span class="m-label">Vol (MM)</span>
-                        <span class="m-value">{format_br(row['Vol (MM)'])}</span>
-                    </div>
-                    <div class="m-item">
-                        <span class="m-label">YTD %</span>
-                        <span class="m-value">{color_pct(row['YTD %'])}</span>
-                    </div>
-                    <div class="m-item">
-                        <span class="m-label">12 Meses %</span>
-                        <span class="m-value">{color_pct(row['12 Meses %'])}</span>
-                    </div>
+                    <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{color_day}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
+                    <div class="m-item"><span class="m-label">Upside</span><span class="m-value" style="color:{color_upside}">{format_br(row['Upside'], is_pct=True)}</span></div>
+                    <div class="m-item"><span class="m-label">Rec.</span><span class="m-value" style="color:#FFF">{row['Recomendação']}</span></div>
+                    <div class="m-item"><span class="m-label">Vol (MM)</span><span class="m-value">{format_br(row['Vol (MM)'])}</span></div>
+                    <div class="m-item"><span class="m-label">YTD</span><span class="m-value">{format_br(row['YTD %'], is_pct=True)}</span></div>
+                    <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
                 </div>
             </div>
-        </details>
-        """
-        mobile_html_cards += card
+        </details>"""
 
-    # Renderização Condicional
-    st.markdown(f'<div class="desktop-view-container">{html_table}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="mobile-view-container">{mobile_html_cards}</div>', unsafe_allow_html=True)
+    # Saída Final
+    st.markdown(f'<div class="desktop-view-container">{df_desktop.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
     
     time.sleep(refresh_interval)
     st.rerun()
 else:
-    st.warning("Nenhum dado encontrado. Verifique sua conexão ou os Tickers informados.")
+    st.warning("Nenhum dado encontrado.")
