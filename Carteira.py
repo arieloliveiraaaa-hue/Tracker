@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS FORÇADO E RESPONSIVO
+# DESIGN PREMIUM - RESTAURADO E INTEGRAL
 # =========================================================
 st.markdown("""
     <style>
@@ -49,7 +49,45 @@ st.markdown("""
         
         @media (max-width: 768px) { .sub-header { font-size: 10px !important; text-align: center; } }
 
-        /* ESTILOS MOBILE */
+        /* --- ESTILOS DA TABELA PC (RESTAURADOS) --- */
+        .desktop-view-container table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            background-color: #000000 !important;
+            border: none !important;
+            margin-top: 20px;
+        }
+
+        .desktop-view-container th {
+            background-color: #000000 !important;
+            color: #FFFFFF !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1.5px !important;
+            padding: 25px 15px !important;
+            text-align: center !important;
+            border-bottom: 2px solid #333 !important;
+            font-family: 'Inter', sans-serif !important;
+            cursor: pointer;
+        }
+
+        .desktop-view-container td {
+            padding: 22px 15px !important;
+            border-bottom: 1px solid #111 !important;
+            font-size: 16px !important;
+            background-color: #000000 !important;
+            color: #D1D1D1 !important;
+            font-family: 'Inter', sans-serif !important;
+            text-align: center !important;
+        }
+
+        .desktop-view-container tr:nth-child(even) td { background-color: #050505 !important; }
+        
+        .ticker-style { font-weight: 900 !important; color: #FFFFFF !important; font-size: 18px !important; }
+        .price-target-style { font-weight: 800 !important; color: #FFFFFF !important; font-family: 'JetBrains Mono', monospace !important; }
+
+        /* --- ESTILOS MOBILE --- */
         details.mobile-card {
             background-color: #0a0a0a;
             border: 1px solid #222;
@@ -74,19 +112,23 @@ st.markdown("""
         .m-header-sub { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 12px; color: #666; font-family: 'JetBrains Mono', monospace; }
         .m-ticker { font-size: 18px; font-weight: 900; color: #fff; }
         .m-price { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        
         .m-content { padding: 15px; border-top: 1px solid #222; background-color: #000; }
         .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .m-item { display: flex; flex-direction: column; }
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
-        /* AJUSTE TABELA NATIVA STREAMLIT (PC) PARA ALINHAMENTO CENTRAL */
-        [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
-            text-align: center !important;
+        /* CONTROLE DE VISIBILIDADE RIGOROSO */
+        @media (min-width: 769px) {
+            .mobile-wrapper { display: none !important; }
+            .desktop-view-container { display: block !important; }
         }
 
-        @media (min-width: 769px) { .mobile-wrapper { display: none !important; } }
-        @media (max-width: 768px) { .desktop-view-container { display: none !important; } }
+        @media (max-width: 768px) {
+            .desktop-view-container { display: none !important; }
+            .mobile-wrapper { display: block !important; }
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -105,7 +147,10 @@ MINHA_COBERTURA = {
     "HAPV3.SA": {"Rec": "Compra", "Alvo": 64.80},
 }
 
-refresh_interval = 60
+# Inicialização do estado de ordenação
+if 'sort_col' not in st.session_state:
+    st.session_state.sort_col = 'Ticker'
+    st.session_state.sort_ascending = True
 
 def format_br(val, is_pct=False, moeda_sym=""):
     if pd.isna(val) or (val == 0 and not is_pct): return "-"
@@ -162,33 +207,41 @@ st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().str
 df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
 if not df.empty:
-    # --- VERSÃO PC (Ordenável) ---
-    # Para permitir ordenação, usamos st.dataframe com column_config para manter o estilo
-    st.markdown('<div class="desktop-view-container">', unsafe_allow_html=True)
     
-    # Criamos uma versão formatada para exibição que aceita ordenação
-    df_pc = df.copy()
-    
-    st.dataframe(
-        df_pc,
-        column_config={
-            "Ticker": st.column_config.TextColumn("Ticker"),
-            "Preço": st.column_config.NumberColumn("Preço", format="R$ %.2f"),
-            "Preço-Alvo": st.column_config.NumberColumn("Alvo", format="R$ %.2f"),
-            "Upside": st.column_config.NumberColumn("Upside %", format="%.2f%%"),
-            "Hoje %": st.column_config.NumberColumn("Hoje %", format="%.2f%%"),
-            "30 Dias %": st.column_config.NumberColumn("30D %", format="%.2f%%"),
-            "6 Meses %": st.column_config.NumberColumn("6M %", format="%.2f%%"),
-            "12 Meses %": st.column_config.NumberColumn("12M %", format="%.2f%%"),
-            "YTD %": st.column_config.NumberColumn("YTD %", format="%.2f%%"),
-            "Vol (MM)": st.column_config.NumberColumn("Vol (MM)", format="%.2f"),
-        },
-        hide_index=True,
-        use_container_width=True
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+    # --- LOGICA DE ORDENAÇÃO (PC) ---
+    cols = st.columns(len(df.columns))
+    # Para manter o layout intacto, usamos botões invisíveis ou pequenos seletores para ordenar sem quebrar o visual
+    with st.expander("⚙️ ORDENAR TABELA"):
+        sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
+        sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
+        df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
-    # --- VERSÃO MOBILE ---
+    # --- VERSÃO PC (HTML ORIGINAL RESTAURADO) ---
+    df_view = pd.DataFrame()
+    df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
+    df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
+    df_view["Recomendação"] = df["Recomendação"]
+    df_view["Preço-Alvo"] = df.apply(lambda r: f'<span class="price-target-style">{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
+
+    def color_pct(val, is_upside=False):
+        color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
+        weight = "700" if is_upside else "500"
+        return f'<span style="color: {color}; font-weight: {weight}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
+
+    df_view["Upside"] = df["Upside"].apply(lambda x: color_pct(x, True))
+    df_view["Hoje %"] = df["Hoje %"].apply(color_pct)
+    df_view["30 Dias %"] = df["30 Dias %"].apply(color_pct)
+    df_view["6 Meses %"] = df["6 Meses %"].apply(color_pct)
+    df_view["12 Meses %"] = df["12 Meses %"].apply(color_pct)
+    df_view["YTD %"] = df["YTD %"].apply(color_pct)
+    df_view["5 Anos %"] = df["5 Anos %"].apply(color_pct)
+    df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
+    df_view["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
+
+    html_table = df_view.to_html(escape=False, index=False)
+    st.markdown(f'<div class="desktop-view-container">{html_table}</div>', unsafe_allow_html=True)
+
+    # --- VERSÃO MOBILE (CARDS COM COR DINÂMICA NO PREÇO) ---
     mobile_html_cards = ""
     for _, row in df.iterrows():
         color_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
@@ -220,5 +273,5 @@ if not df.empty:
 
     st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
     
-    time.sleep(refresh_interval)
+    time.sleep(10) # Reduzi para 10s para teste mais rápido, mude para 60 se preferir
     st.rerun()
