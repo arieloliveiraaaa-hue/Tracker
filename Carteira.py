@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS AJUSTADO
+# DESIGN PREMIUM - CSS
 # =========================================================
 st.markdown("""
     <style>
@@ -22,7 +22,6 @@ st.markdown("""
             .block-container { padding: 1rem 0.5rem !important; }
         }
 
-        /* Estilo para Abas (Menu) */
         .stTabs [data-baseweb="tab-list"] {
             gap: 20px;
             background-color: transparent;
@@ -93,17 +92,17 @@ st.markdown("""
             text-align: center !important;
         }
         
-        /* Linha separadora de Setor */
         .sector-divider-row td {
             background-color: #0a0a0a !important;
-            color: #444 !important;
+            color: #FFFFFF !important;
             font-weight: 700 !important;
             text-align: left !important;
-            padding: 10px 20px !important;
+            padding: 12px 20px !important;
             font-size: 11px !important;
             letter-spacing: 3px !important;
             text-transform: uppercase !important;
             border-bottom: 1px solid #222 !important;
+            border-top: 2px solid #222 !important;
         }
 
         .desktop-view-container tr:nth-child(even) td { background-color: #050505 !important; }
@@ -111,8 +110,9 @@ st.markdown("""
 
         .mobile-wrapper { padding-top: 30px !important; }
         .mobile-sector-label {
-            color: #444; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-            margin: 25px 0 10px 5px; font-family: 'JetBrains Mono';
+            background-color: #111; color: #fff; font-size: 11px; letter-spacing: 2px; 
+            text-transform: uppercase; padding: 10px; margin: 20px 0 10px 0;
+            font-family: 'JetBrains Mono'; border-left: 3px solid #fff;
         }
         details.mobile-card {
             background-color: #0a0a0a; border: 1px solid #222; border-radius: 8px;
@@ -226,7 +226,6 @@ def get_stock_data(tickers):
 # UI PRINCIPAL
 # =========================================================
 
-# Menu Superior Minimalista
 tab_cobertura, tab_setores = st.tabs(["Cobertura", "Setores"])
 
 with tab_cobertura:
@@ -241,7 +240,6 @@ with tab_cobertura:
             sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True, key="order_cob")
             df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
-        # --- PC VIEW ---
         df_view = pd.DataFrame()
         df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
         df_view["Rec."] = df["Recomendação"]
@@ -256,7 +254,6 @@ with tab_cobertura:
 
         st.markdown(f'<div class="desktop-view-container">{df_view.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
 
-        # --- MOBILE VIEW ---
         mobile_html_cards = ""
         for _, row in df.iterrows():
             c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
@@ -281,16 +278,17 @@ with tab_setores:
     st.markdown('<span class="main-title">SETORES</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">ACOMPANHAMENTO SETORIAL • {datetime.now().strftime("%d %b %Y")}</span>', unsafe_allow_html=True)
 
-    all_tickers = []
-    for t_list in SETORES_ACOMPANHAMENTO.values(): all_tickers.extend(t_list)
+    # Pegamos todos os tickers únicos de todos os setores
+    all_tickers_setores = []
+    for t_list in SETORES_ACOMPANHAMENTO.values():
+        all_tickers_setores.extend(t_list)
     
-    df_setores = get_stock_data(list(set(all_tickers)))
+    df_setores = get_stock_data(list(set(all_tickers_setores)))
 
     if not df_setores.empty:
-        # Lógica de agrupamento por setor para PC
+        # Construção manual da tabela para Desktop
         pc_html_setores = '<div class="desktop-view-container"><table><thead><tr><th>Ticker</th><th>Preço</th><th>Hoje</th><th>30D</th><th>6M</th><th>12M</th><th>Vol (MM)</th></tr></thead><tbody>'
         
-        # Lógica para Mobile
         mobile_html_setores = '<div class="mobile-wrapper">'
 
         for setor, tickers in SETORES_ACOMPANHAMENTO.items():
@@ -298,25 +296,25 @@ with tab_setores:
             df_sub = df_setores[df_setores['Ticker'].isin(tickers_limpos)]
             
             if not df_sub.empty:
-                # Add linha de setor no PC
+                # Divisor de Setor PC
                 pc_html_setores += f'<tr class="sector-divider-row"><td colspan="7">{setor}</td></tr>'
-                # Add label de setor no Mobile
+                # Divisor de Setor Mobile
                 mobile_html_setores += f'<div class="mobile-sector-label">{setor}</div>'
 
                 for _, row in df_sub.iterrows():
-                    # PC Row
+                    # Linha PC
                     pc_html_setores += f"""
                     <tr>
                         <td><span class="ticker-style">{row['Ticker']}</span></td>
-                        <td>{format_br(row['Preço'], moeda_sym=row['Moeda'])}</td>
+                        <td>{row['Moeda']} {format_br(row['Preço'])}</td>
                         <td>{color_pct(row['Hoje %'])}</td>
                         <td>{color_pct(row['30 Dias %'])}</td>
                         <td>{color_pct(row['6 Meses %'])}</td>
                         <td>{color_pct(row['12 Meses %'])}</td>
                         <td>{format_br(row['Vol (MM)'])}</td>
-                    </tr>
-                    """
-                    # Mobile Card
+                    </tr>"""
+                    
+                    # Card Mobile
                     c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
                     mobile_html_setores += f"""
                     <details class="mobile-card">
@@ -334,6 +332,7 @@ with tab_setores:
         pc_html_setores += "</tbody></table></div>"
         mobile_html_setores += "</div>"
         
+        # Renderização final (O ERRO ESTAVA AQUI: PRECISAVA SER ST.MARKDOWN)
         st.markdown(pc_html_setores, unsafe_allow_html=True)
         st.markdown(mobile_html_setores, unsafe_allow_html=True)
 
