@@ -77,7 +77,7 @@ st.markdown("""
         td {
             padding: 22px 15px !important;
             border-bottom: 1px solid #111 !important;
-            font-size: 17px !important;
+            font-size: 16px !important;
             background-color: #000000 !important;
             color: #D1D1D1 !important;
             font-family: 'Inter', sans-serif !important;
@@ -92,7 +92,7 @@ st.markdown("""
         .ticker-style {
             font-weight: 900 !important;
             color: #FFFFFF !important;
-            font-size: 20px !important;
+            font-size: 18px !important;
         }
 
         .price-target-style {
