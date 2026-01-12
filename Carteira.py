@@ -62,7 +62,7 @@ st.markdown("""
         th {
             background-color: #000000 !important;
             color: #FFFFFF !important;
-            font-size: 12px !important;
+            font-size: 14px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
             letter-spacing: 1.5px !important;
