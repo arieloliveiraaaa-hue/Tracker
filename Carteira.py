@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS ORIGINAL RESTAURADO
+# DESIGN PREMIUM - CSS AJUSTADO (ESPAÇAMENTO E ORDEM)
 # =========================================================
 st.markdown("""
     <style>
@@ -31,6 +31,8 @@ st.markdown("""
             line-height: 1 !important;
             display: block !important;
         }
+        
+        @media (max-width: 768px) { .main-title { font-size: 32px !important; text-align: center; } }
 
         .sub-header {
             font-family: 'JetBrains Mono', monospace !important;
@@ -43,26 +45,18 @@ st.markdown("""
             display: block !important;
         }
 
-        .section-divider {
-            font-family: 'Inter', sans-serif !important;
-            font-size: 12px !important;
-            font-weight: 900 !important;
-            color: #333 !important;
-            letter-spacing: 3px !important;
-            text-transform: uppercase !important;
-            margin: 60px 0 20px 0 !important;
-            border-bottom: 1px solid #111;
-            padding-bottom: 10px;
+        /* TABELA PC - COM PADDING PARA NÃO CORTAR O BOTÃO */
+        .desktop-view-container {
+            padding-top: 40px !important;
         }
 
-        /* TABELA PC */
-        .desktop-view-container { padding-top: 20px !important; }
         .desktop-view-container table {
             width: 100% !important;
             border-collapse: collapse !important;
             background-color: #000000 !important;
             border: none !important;
         }
+
         .desktop-view-container th {
             background-color: #000000 !important;
             color: #FFFFFF !important;
@@ -74,6 +68,7 @@ st.markdown("""
             border-bottom: 2px solid #222 !important;
             font-family: 'Inter', sans-serif !important;
         }
+
         .desktop-view-container td {
             padding: 18px 10px !important;
             border-bottom: 1px solid #111 !important;
@@ -83,10 +78,15 @@ st.markdown("""
             font-family: 'Inter', sans-serif !important;
             text-align: center !important;
         }
+
         .desktop-view-container tr:nth-child(even) td { background-color: #050505 !important; }
         .ticker-style { font-weight: 900 !important; color: #FFFFFF !important; }
 
-        /* MOBILE CARDS */
+        /* MOBILE CARDS - ESPAÇAMENTO AJUSTADO */
+        .mobile-wrapper {
+            padding-top: 30px !important;
+        }
+
         details.mobile-card {
             background-color: #0a0a0a;
             border: 1px solid #222;
@@ -95,6 +95,7 @@ st.markdown("""
             overflow: hidden;
             font-family: 'Inter', sans-serif;
         }
+
         summary.m-summary {
             padding: 15px;
             cursor: pointer;
@@ -104,6 +105,8 @@ st.markdown("""
             gap: 5px;
             background-color: #0e0e0e;
         }
+
+        summary.m-summary::-webkit-details-marker { display: none; }
         .m-header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .m-ticker { font-size: 18px; font-weight: 900; color: #fff; }
         .m-price { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
@@ -111,6 +114,7 @@ st.markdown("""
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; display:block;}
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
+        /* RESPONSIVIDADE E BOTÃO POPOVER */
         @media (min-width: 769px) { .mobile-wrapper { display: none !important; } .desktop-view-container { display: block !important; } }
         @media (max-width: 768px) { .desktop-view-container { display: none !important; } .mobile-wrapper { display: block !important; } [data-testid="stPopover"] { display: none !important; } }
         
@@ -118,17 +122,19 @@ st.markdown("""
             background-color: #000000 !important;
             border: 1px solid #222 !important;
             color: #444 !important;
+            padding: 5px 12px !important;
         }
+        
         div[data-testid="stPopover"] {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: -15px;
+            margin-bottom: -10px; /* Ajustado para não sobrepor */
         }
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# DADOS
+# LÓGICA DE DADOS
 # =========================================================
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
@@ -142,108 +148,107 @@ MINHA_COBERTURA = {
     "HAPV3.SA": {"Rec": "Compra", "Alvo": 64.80},
 }
 
-SETORES_ACOMPANHAMENTO = {
-    "IBOV": ["^BVSP"],
-    "Bancos": ["ITUB4.SA", "BBDC4.SA", "BBAS3.SA", "SANB11.SA", "B3SA3.SA"],
-    "Energia": ["EQTL3.SA", "AURE3.SA", "TAEE11.SA", "CPLE3.SA"],
-    "Tech": ["TOTS3.SA", "TIMS3.SA", "VIVT3.SA"],
-    "Varejo": ["LREN3.SA", "MGLU3.SA", "ASAI3.SA"]
-}
-
-# =========================================================
-# LÓGICA
-# =========================================================
 def format_br(val, is_pct=False, moeda_sym=""):
     if pd.isna(val) or (val == 0 and not is_pct): return "-"
     formatted = "{:,.2f}".format(val).replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{moeda_sym} {formatted}" if moeda_sym else (f"{formatted}%" if is_pct else formatted)
+    if is_pct: return f"{formatted}%"
+    if moeda_sym: return f"{moeda_sym} {formatted}"
+    return formatted
 
 def get_stock_data(tickers):
     data_list = []
     for ticker in tickers:
         try:
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="2y")
+            hist = stock.history(period="6y", auto_adjust=True)
             if hist.empty: continue
+            hist = hist[hist['Close'] > 0].dropna()
             price_current = float(hist['Close'].iloc[-1])
-            price_prev = float(hist['Close'].iloc[-2])
-            
-            def calculate_pct(days):
+            price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
+            info = stock.info
+            moeda = info.get('currency', 'BRL') if info else 'BRL'
+            simbolo = "$" if moeda == "USD" else "R$" if moeda == "BRL" else moeda
+            dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
+            preco_alvo = dados_manuais["Alvo"]
+            upside = (preco_alvo / price_current - 1) * 100 if preco_alvo > 0 else 0.0
+
+            def calculate_pct(days_ago=None, is_ytd=False):
                 try:
-                    target = hist.index[-1] - timedelta(days=days)
-                    idx = hist.index.get_indexer([target], method='pad')[0]
+                    target_date = datetime(datetime.now().year, 1, 1) if is_ytd else datetime.now() - timedelta(days=days_ago)
+                    target_ts = pd.Timestamp(target_date).tz_localize(hist.index.tz)
+                    idx = hist.index.get_indexer([target_ts], method='pad')[0]
                     return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
                 except: return 0.0
 
             data_list.append({
-                "Ticker": ticker.replace(".SA", ""), "Preço": price_current, 
-                "Hoje %": ((price_current/price_prev)-1)*100, "30D %": calculate_pct(30), 
-                "12M %": calculate_pct(365), "Original": ticker, "Moeda": "R$"
+                "Ticker": ticker.replace(".SA", ""), "Moeda": simbolo, "Preço": price_current,
+                "Recomendação": dados_manuais["Rec"], "Preço-Alvo": preco_alvo,
+                "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
+                "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
+                "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
+                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0
             })
         except: continue
     return pd.DataFrame(data_list)
 
-def color_pct(val):
-    color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
-    return f'<span style="color: {color}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
+# =========================================================
+# UI
+# =========================================================
 
-# =========================================================
-# UI PRINCIPAL
-# =========================================================
 st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
-st.markdown(f'<span class="sub-header">B3 REAL-TIME • {datetime.now().strftime("%H:%M:%S")}</span>', unsafe_allow_html=True)
+st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
 
-# --- SEÇÃO 1: CARTEIRA ---
-st.markdown('<div class="section-divider">CARTEIRA COBERTURA</div>', unsafe_allow_html=True)
-df_carteira = get_stock_data(list(MINHA_COBERTURA.keys()))
+df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
-if not df_carteira.empty:
+if not df.empty:
+    # --- POPOVER MINIMALISTA ---
     with st.popover("⚙️"):
-        sort_col = st.selectbox("Ordenar Carteira:", df_carteira.columns, index=0)
-        df_carteira = df_carteira.sort_values(by=sort_col, ascending=False)
+        sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
+        sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
+        df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
-    # PC View Carteira
-    df_v = pd.DataFrame()
-    df_v["Ticker"] = df_carteira["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-    df_v["Rec."] = [MINHA_COBERTURA[t]["Rec"] for t in df_carteira["Original"]]
-    df_v["Alvo"] = [format_br(MINHA_COBERTURA[t]["Alvo"], moeda_sym="R$") for t in df_carteira["Original"]]
-    df_v["Preço"] = df_carteira.apply(lambda r: format_br(r["Preço"], moeda_sym="R$"), axis=1)
-    df_v["Upside"] = [color_pct((MINHA_COBERTURA[t]["Alvo"]/r["Preço"]-1)*100) for t, r in zip(df_carteira["Original"], df_carteira.to_dict('records'))]
-    df_v["Hoje"] = df_carteira["Hoje %"].apply(color_pct)
-    df_v["12M"] = df_carteira["12M %"].apply(color_pct)
+    # --- PC VIEW (ORDEM REORGANIZADA) ---
+    df_view = pd.DataFrame()
+    df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
+    df_view["Rec."] = df["Recomendação"]
+    df_view["Alvo"] = df.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
+    df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
+
+    def color_pct(val):
+        color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
+        return f'<span style="color: {color}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
+
+    df_view["Upside"] = df["Upside"].apply(color_pct)
+    df_view["Hoje"] = df["Hoje %"].apply(color_pct)
+    df_view["30D"] = df["30 Dias %"].apply(color_pct)
+    df_view["6M"] = df["6 Meses %"].apply(color_pct)
+    df_view["12M"] = df["12 Meses %"].apply(color_pct)
+    df_view["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
+
+    st.markdown(f'<div class="desktop-view-container">{df_view.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
+
+    # --- MOBILE VIEW ---
+    mobile_html_cards = ""
+    for _, row in df.iterrows():
+        c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
+        
+        mobile_html_cards += f"""
+        <details class="mobile-card">
+            <summary class="m-summary">
+                <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
+                <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
+                    <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼</span>
+                </div>
+            </summary>
+            <div class="m-grid">
+                <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
+                <div class="m-item"><span class="m-label">Upside</span><span class="m-value">{format_br(row['Upside'], is_pct=True)}</span></div>
+                <div class="m-item"><span class="m-label">Rec.</span><span class="m-value">{row['Recomendação']}</span></div>
+                <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
+            </div>
+        </details>"""
+
+    st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
     
-    st.markdown(f'<div class="desktop-view-container">{df_v.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
-
-    # Mobile View Carteira
-    m_html = ""
-    for _, r in df_carteira.iterrows():
-        c_price = "#00FF95" if r['Hoje %'] > 0 else "#FF4B4B"
-        m_html += f'<details class="mobile-card"><summary class="m-summary"><div class="m-header-top"><span class="m-ticker">{r["Ticker"]}</span><span class="m-price" style="color: {c_price}">R$ {format_br(r["Preço"])}</span></div><div style="font-size:12px;color:#444">Alvo: R$ {format_br(MINHA_COBERTURA[r["Original"]]["Alvo"])}</div></summary><div class="m-grid"><div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(r["Hoje %"],True)}</span></div><div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(r["12M %"],True)}</span></div></div></details>'
-    st.markdown(f'<div class="mobile-wrapper">{m_html}</div>', unsafe_allow_html=True)
-
-# --- SEÇÃO 2: SETORES ---
-st.markdown('<div class="section-divider">ACOMPANHAMENTO SETORES</div>', unsafe_allow_html=True)
-
-for setor, tickers in SETORES_ACOMPANHAMENTO.items():
-    st.markdown(f'<div style="color:#666; font-size:11px; margin-bottom:10px; font-family:Inter; font-weight:700;">// {setor}</div>', unsafe_allow_html=True)
-    df_s = get_stock_data(tickers)
-    
-    if not df_s.empty:
-        # PC View Setor
-        df_sv = pd.DataFrame()
-        df_sv["Ticker"] = df_s["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-        df_sv["Preço"] = df_s.apply(lambda r: format_br(r["Preço"], moeda_sym="R$"), axis=1)
-        df_sv["Hoje"] = df_s["Hoje %"].apply(color_pct)
-        df_sv["30D"] = df_s["30D %"].apply(color_pct)
-        df_sv["12M"] = df_s["12M %"].apply(color_pct)
-        st.markdown(f'<div class="desktop-view-container" style="padding-top:0px !important; margin-bottom:30px;">{df_sv.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
-
-        # Mobile View Setor
-        ms_html = ""
-        for _, r in df_s.iterrows():
-            c_p = "#00FF95" if r['Hoje %'] > 0 else "#FF4B4B"
-            ms_html += f'<details class="mobile-card"><summary class="m-summary"><div class="m-header-top"><span class="m-ticker">{r["Ticker"]}</span><span class="m-price" style="color: {c_p}">R$ {format_br(r["Preço"])}</span></div></summary><div class="m-grid"><div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_p}">{format_br(r["Hoje %"],True)}</span></div><div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(r["12M %"],True)}</span></div></div></details>'
-        st.markdown(f'<div class="mobile-wrapper" style="padding-top:0px !important;">{ms_html}</div>', unsafe_allow_html=True)
-
-time.sleep(60)
-st.rerun()
+    time.sleep(60)
+    st.rerun()
