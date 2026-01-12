@@ -176,7 +176,7 @@ MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
     "VIVT3.SA": {"Rec": "Compra", "Alvo": 38.00},
     "CPLE3.SA": {"Rec": "Neutro", "Alvo": 11.00},
-    "AXIA3.SA": {"Rec": "Compra", "Alvo": 59.00}, 
+    "AXIA3.SA": {"Rec": "Compra", "Alvo": 59.00},
     "ENGI3.SA": {"Rec": "Compra", "Alvo": 46.00},
     "TAEE11.SA": {"Rec": "Compra", "Alvo": 34.00},
     "EQTL3.SA": {"Rec": "Compra", "Alvo": 35.00},
@@ -213,40 +213,112 @@ def format_br(val, is_pct=False, moeda_sym=""):
     if moeda_sym: return f"{moeda_sym} {formatted}"
     return formatted
 
+@st.cache_data(ttl=60, show_spinner=False)
 def get_stock_data(tickers):
-    data_list = []
-    for ticker in tickers:
+    def moeda_simbolo(t):
+        if t.endswith(".SA") or t == "^BVSP":
+            return "R$"
+        return "$"
+
+    def calc_pct_from_series(close_s: pd.Series, price_current: float, days_ago=None, is_ytd=False):
         try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="6y", auto_adjust=True)
-            if hist.empty: continue
-            hist = hist[hist['Close'] > 0].dropna()
-            price_current = float(hist['Close'].iloc[-1])
-            price_prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else price_current
-            info = stock.info
-            moeda = info.get('currency', 'BRL') if info else 'BRL'
-            simbolo = "$" if moeda == "USD" else "R$" if moeda == "BRL" else moeda
-            dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
-            preco_alvo = dados_manuais["Alvo"]
-            upside = (preco_alvo / price_current - 1) * 100 if preco_alvo > 0 else 0.0
+            if close_s.empty:
+                return 0.0
+            close_s = close_s.dropna()
+            if close_s.empty:
+                return 0.0
 
-            def calculate_pct(days_ago=None, is_ytd=False):
-                try:
-                    target_date = datetime(datetime.now().year, 1, 1) if is_ytd else datetime.now() - timedelta(days=days_ago)
-                    target_ts = pd.Timestamp(target_date).tz_localize(hist.index.tz)
-                    idx = hist.index.get_indexer([target_ts], method='pad')[0]
-                    return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
-                except: return 0.0
+            if is_ytd:
+                target_date = datetime(datetime.now().year, 1, 1)
+            else:
+                target_date = datetime.now() - timedelta(days=days_ago)
 
-            data_list.append({
-                "Ticker": ticker.replace(".SA", ""), "Moeda": simbolo, "Preço": price_current,
-                "Recomendação": dados_manuais["Rec"], "Preço-Alvo": preco_alvo,
-                "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
-                "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
-                "12 Meses %": calculate_pct(days_ago=365), "YTD %": calculate_pct(is_ytd=True),
-                "Vol (MM)": float(info.get('regularMarketVolume', 0)) / 1_000_000 if info else 0
-            })
-        except: continue
+            ts = pd.Timestamp(target_date)
+            idx = close_s.index.get_indexer([ts], method="pad")[0]
+            base = float(close_s.iloc[idx])
+            if base <= 0:
+                return 0.0
+            return ((price_current / base) - 1) * 100
+        except:
+            return 0.0
+
+    data_list = []
+    if not tickers:
+        return pd.DataFrame()
+
+    CHUNK = 60
+    for i in range(0, len(tickers), CHUNK):
+        chunk = tickers[i:i+CHUNK]
+        try:
+            raw = yf.download(
+                tickers=chunk,
+                period="6y",
+                auto_adjust=True,
+                group_by="ticker",
+                threads=True,
+                progress=False,
+            )
+        except:
+            continue
+
+        # normaliza
+        if isinstance(raw.columns, pd.MultiIndex):
+            # caso mais comum: (PriceField, Ticker)
+            if "Close" in raw.columns.get_level_values(0):
+                close_df = raw["Close"]
+                vol_df = raw["Volume"] if "Volume" in raw.columns.get_level_values(0) else None
+            else:
+                # fallback: (Ticker, PriceField)
+                close_df = raw.xs("Close", axis=1, level=1, drop_level=False)
+                close_df.columns = close_df.columns.get_level_values(0)
+                vol_df = raw.xs("Volume", axis=1, level=1, drop_level=False) if ("Volume" in raw.columns.get_level_values(1)) else None
+                if vol_df is not None:
+                    vol_df.columns = vol_df.columns.get_level_values(0)
+        else:
+            close_df = raw[["Close"]].rename(columns={"Close": chunk[0]})
+            vol_df = raw[["Volume"]].rename(columns={"Volume": chunk[0]}) if "Volume" in raw.columns else None
+
+        for ticker in chunk:
+            try:
+                if ticker not in close_df.columns:
+                    continue
+
+                hist_close = close_df[ticker].dropna()
+                if hist_close.empty:
+                    continue
+
+                price_current = float(hist_close.iloc[-1])
+                price_prev_close = float(hist_close.iloc[-2]) if len(hist_close) > 1 else price_current
+
+                simbolo = moeda_simbolo(ticker)
+
+                dados_manuais = MINHA_COBERTURA.get(ticker, {"Rec": "-", "Alvo": 0.0})
+                preco_alvo = float(dados_manuais["Alvo"])
+                upside = (preco_alvo / price_current - 1) * 100 if preco_alvo > 0 else 0.0
+
+                vol_mm = 0.0
+                if vol_df is not None and ticker in vol_df.columns:
+                    hist_vol = vol_df[ticker].dropna()
+                    if not hist_vol.empty:
+                        vol_mm = float(hist_vol.iloc[-1]) / 1_000_000
+
+                data_list.append({
+                    "Ticker": ticker.replace(".SA", ""),
+                    "Moeda": simbolo,
+                    "Preço": price_current,
+                    "Recomendação": dados_manuais["Rec"],
+                    "Preço-Alvo": preco_alvo,
+                    "Upside": upside,
+                    "Hoje %": ((price_current / price_prev_close) - 1) * 100,
+                    "30 Dias %": calc_pct_from_series(hist_close, price_current, days_ago=30),
+                    "6 Meses %": calc_pct_from_series(hist_close, price_current, days_ago=180),
+                    "12 Meses %": calc_pct_from_series(hist_close, price_current, days_ago=365),
+                    "YTD %": calc_pct_from_series(hist_close, price_current, is_ytd=True),
+                    "Vol (MM)": vol_mm,
+                })
+            except:
+                continue
+
     return pd.DataFrame(data_list)
 
 def color_pct(val):
@@ -262,11 +334,10 @@ def display_ticker_key(ticker: str) -> str:
 if "page" not in st.session_state:
     st.session_state.page = "Cobertura"
 
-# mantém o mesmo visual minimalista do seu menu
 st.markdown('<div class="top-nav">', unsafe_allow_html=True)
 
 choice = st.radio(
-    "",
+    "Menu",
     ["Cobertura", "Setores"],
     horizontal=True,
     key="__nav_page",
@@ -279,17 +350,11 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 page = "setores" if st.session_state.page == "Setores" else "cobertura"
 
-# (opcional) CSS extra só para o radio parecer link (não mexe no resto)
 st.markdown("""
 <style>
-/* deixa o radio com cara de menu (minimal) */
-div[data-testid="stRadio"] > div {
-    gap: 18px !important;
-}
-div[data-testid="stRadio"] label {
-    margin: 0 !important;
-}
-div[data-testid="stRadio"] label > div:first-child { display:none !important; } /* esconde bolinha */
+div[data-testid="stRadio"] > div { gap: 18px !important; }
+div[data-testid="stRadio"] label { margin: 0 !important; }
+div[data-testid="stRadio"] label > div:first-child { display:none !important; }
 div[data-testid="stRadio"] label > div:last-child {
     font-family: 'JetBrains Mono', monospace !important;
     text-transform: uppercase !important;
@@ -306,11 +371,9 @@ div[data-testid="stRadio"] label[data-checked="true"] > div:last-child {
 </style>
 """, unsafe_allow_html=True)
 
-
 # =========================================================
 # UI
 # =========================================================
-
 if page == "setores":
     st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
@@ -330,7 +393,6 @@ if page == "setores":
     if not df.empty:
         df_map = {row["Ticker"]: row for _, row in df.iterrows()}
 
-        # --- PC VIEW (SETORES) ---
         cols = ["Ticker", "Preço", "Hoje", "30D", "6M", "12M", "Vol (MM)"]
         thead = """
             <thead>
@@ -368,7 +430,6 @@ if page == "setores":
         table_html = f"<table>{thead}{tbody}</table>"
         st.markdown(f'<div class="desktop-view-container">{table_html}</div>', unsafe_allow_html=True)
 
-        # --- MOBILE VIEW (SETORES) ---
         mobile_html_cards = ""
         for sector, t in ordered_pairs:
             k = display_ticker_key(t)
@@ -403,13 +464,11 @@ else:
     df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
     if not df.empty:
-        # --- POPOVER MINIMALISTA ---
         with st.popover("⚙️"):
             sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
             sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
             df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
 
-        # --- PC VIEW (ORDEM REORGANIZADA) ---
         df_view = pd.DataFrame()
         df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
         df_view["Rec."] = df["Recomendação"]
@@ -425,11 +484,10 @@ else:
 
         st.markdown(f'<div class="desktop-view-container">{df_view.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
 
-        # --- MOBILE VIEW ---
         mobile_html_cards = ""
         for _, row in df.iterrows():
             c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
-            
+
             mobile_html_cards += f"""
             <details class="mobile-card">
                 <summary class="m-summary">
@@ -447,6 +505,6 @@ else:
             </details>"""
 
         st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
-        
-        time.sleep(60)
+
+        time.sleep(240)
         st.rerun()
