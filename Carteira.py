@@ -8,29 +8,21 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM - CSS FORÇADO E RESPONSIVO (COM ACCORDION)
+# DESIGN PREMIUM - CSS FORÇADO E RESPONSIVO
 # =========================================================
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
-        /* Fundo Total Negro */
-        .stApp {
-            background-color: #000000 !important;
-        }
-
+        .stApp { background-color: #000000 !important; }
         header, footer, #MainMenu {visibility: hidden;}
 
-        /* Container Principal */
-        .block-container {
-            padding: 3rem 5rem !important;
-        }
+        .block-container { padding: 3rem 5rem !important; }
         
         @media (max-width: 768px) {
             .block-container { padding: 1rem 0.5rem !important; }
         }
 
-        /* TÍTULO PRINCIPAL */
         .main-title {
             font-family: 'Inter', sans-serif !important;
             font-size: 60px !important;
@@ -42,11 +34,8 @@ st.markdown("""
             display: block !important;
         }
         
-        @media (max-width: 768px) {
-            .main-title { font-size: 32px !important; letter-spacing: -2px !important; text-align: center; }
-        }
+        @media (max-width: 768px) { .main-title { font-size: 32px !important; text-align: center; } }
 
-        /* TERMINAL DE DADOS */
         .sub-header {
             font-family: 'JetBrains Mono', monospace !important;
             font-size: 15px !important;
@@ -58,51 +47,9 @@ st.markdown("""
             display: block !important;
         }
         
-        @media (max-width: 768px) {
-            .sub-header { font-size: 10px !important; margin-bottom: 20px !important; letter-spacing: 1px !important; text-align: center; }
-        }
+        @media (max-width: 768px) { .sub-header { font-size: 10px !important; text-align: center; } }
 
-        /* =========================================================================
-           ESTILOS DA VERSÃO DESKTOP (TABELA) - INTACTO
-           ========================================================================= */
-        table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            background-color: #000000 !important;
-            border: none !important;
-        }
-
-        th {
-            background-color: #000000 !important;
-            color: #FFFFFF !important;
-            font-size: 14px !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 1.5px !important;
-            padding: 25px 15px !important;
-            text-align: center !important;
-            border-bottom: 2px solid #333 !important;
-            font-family: 'Inter', sans-serif !important;
-        }
-
-        td {
-            padding: 22px 15px !important;
-            border-bottom: 1px solid #111 !important;
-            font-size: 16px !important;
-            background-color: #000000 !important;
-            color: #D1D1D1 !important;
-            font-family: 'Inter', sans-serif !important;
-            text-align: center !important;
-        }
-
-        tr:nth-child(even) td { background-color: #050505 !important; }
-
-        .ticker-style { font-weight: 900 !important; color: #FFFFFF !important; font-size: 18px !important; }
-        .price-target-style { font-weight: 800 !important; color: #FFFFFF !important; font-family: 'JetBrains Mono', monospace !important; }
-
-        /* =========================================================================
-           ESTILOS DA VERSÃO MOBILE (ACCORDION/MINIMIZADO)
-           ========================================================================= */
+        /* ESTILOS MOBILE */
         details.mobile-card {
             background-color: #0a0a0a;
             border: 1px solid #222;
@@ -123,32 +70,23 @@ st.markdown("""
         }
 
         summary.m-summary::-webkit-details-marker { display: none; }
-
         .m-header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .m-header-sub { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 12px; color: #666; font-family: 'JetBrains Mono', monospace; }
-
         .m-ticker { font-size: 18px; font-weight: 900; color: #fff; }
-        .m-price { font-size: 18px; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; }
-        
+        .m-price { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
         .m-content { padding: 15px; border-top: 1px solid #222; background-color: #000; }
         .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        
         .m-item { display: flex; flex-direction: column; }
         .m-label { color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .m-value { color: #ddd; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
 
-        /* =========================================================================
-           CONTROLE DE VISIBILIDADE
-           ========================================================================= */
-        @media (min-width: 769px) {
-            .mobile-view-container { display: block !important; }
-            .mobile-wrapper { display: none !important; }
+        /* AJUSTE TABELA NATIVA STREAMLIT (PC) PARA ALINHAMENTO CENTRAL */
+        [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+            text-align: center !important;
         }
 
-        @media (max-width: 768px) {
-            .desktop-view-container { display: none !important; }
-            .mobile-wrapper { display: block !important; }
-        }
+        @media (min-width: 769px) { .mobile-wrapper { display: none !important; } }
+        @media (max-width: 768px) { .desktop-view-container { display: none !important; } }
     </style>
 """, unsafe_allow_html=True)
 
@@ -201,9 +139,8 @@ def get_stock_data(tickers):
                     return ((price_current / float(hist['Close'].iloc[idx])) - 1) * 100
                 except: return 0.0
 
-            ticker_visual = ticker.replace(".SA", "")
             data_list.append({
-                "Ticker": ticker_visual, "Moeda": simbolo, "Preço": price_current,
+                "Ticker": ticker.replace(".SA", ""), "Moeda": simbolo, "Preço": price_current,
                 "Recomendação": dados_manuais["Rec"], "Preço-Alvo": preco_alvo,
                 "Upside": upside, "Hoje %": ((price_current / price_prev_close) - 1) * 100,
                 "30 Dias %": calculate_pct(days_ago=30), "6 Meses %": calculate_pct(days_ago=180),
@@ -222,44 +159,47 @@ def get_stock_data(tickers):
 st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
 st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")} • B3 REAL-TIME</span>', unsafe_allow_html=True)
 
-lista_tickers = list(MINHA_COBERTURA.keys())
-df = get_stock_data(lista_tickers)
+df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
 if not df.empty:
-    # DESKTOP
-    df_desktop = pd.DataFrame()
-    df_desktop["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
-    df_desktop["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
-    df_desktop["Recomendação"] = df["Recomendação"]
-    df_desktop["Preço-Alvo"] = df.apply(lambda r: f'<span class="price-target-style">{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
+    # --- VERSÃO PC (Ordenável) ---
+    # Para permitir ordenação, usamos st.dataframe com column_config para manter o estilo
+    st.markdown('<div class="desktop-view-container">', unsafe_allow_html=True)
+    
+    # Criamos uma versão formatada para exibição que aceita ordenação
+    df_pc = df.copy()
+    
+    st.dataframe(
+        df_pc,
+        column_config={
+            "Ticker": st.column_config.TextColumn("Ticker"),
+            "Preço": st.column_config.NumberColumn("Preço", format="R$ %.2f"),
+            "Preço-Alvo": st.column_config.NumberColumn("Alvo", format="R$ %.2f"),
+            "Upside": st.column_config.NumberColumn("Upside %", format="%.2f%%"),
+            "Hoje %": st.column_config.NumberColumn("Hoje %", format="%.2f%%"),
+            "30 Dias %": st.column_config.NumberColumn("30D %", format="%.2f%%"),
+            "6 Meses %": st.column_config.NumberColumn("6M %", format="%.2f%%"),
+            "12 Meses %": st.column_config.NumberColumn("12M %", format="%.2f%%"),
+            "YTD %": st.column_config.NumberColumn("YTD %", format="%.2f%%"),
+            "Vol (MM)": st.column_config.NumberColumn("Vol (MM)", format="%.2f"),
+        },
+        hide_index=True,
+        use_container_width=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    def color_pct(val, is_upside=False):
-        color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
-        weight = "700" if is_upside else "500"
-        return f'<span style="color: {color}; font-weight: {weight}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
-
-    df_desktop["Upside"] = df["Upside"].apply(lambda x: color_pct(x, True))
-    df_desktop["Hoje %"] = df["Hoje %"].apply(color_pct)
-    df_desktop["30 Dias %"] = df["30 Dias %"].apply(color_pct)
-    df_desktop["6 Meses %"] = df["6 Meses %"].apply(color_pct)
-    df_desktop["12 Meses %"] = df["12 Meses %"].apply(color_pct)
-    df_desktop["YTD %"] = df["YTD %"].apply(color_pct)
-    df_desktop["5 Anos %"] = df["5 Anos %"].apply(color_pct)
-    df_desktop["Vol (MM)"] = df["Vol (MM)"].apply(lambda x: format_br(x))
-    df_desktop["Mkt Cap (MM)"] = df.apply(lambda r: format_br(r["Mkt Cap (MM)"], moeda_sym=r["Moeda"]), axis=1)
-
-    # MOBILE
+    # --- VERSÃO MOBILE ---
     mobile_html_cards = ""
-    for index, row in df.iterrows():
+    for _, row in df.iterrows():
+        color_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
         color_upside = "#00FF95" if row['Upside'] > 0 else "#FF4B4B" if row['Upside'] < 0 else "#666"
-        color_day = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#666"
         
         mobile_html_cards += f"""
         <details class="mobile-card">
             <summary class="m-summary">
                 <div class="m-header-top">
                     <span class="m-ticker">{row['Ticker']}</span>
-                    <span class="m-price">{row['Moeda']} {format_br(row['Preço'])}</span>
+                    <span class="m-price" style="color: {color_price}">{row['Moeda']} {format_br(row['Preço'])}</span>
                 </div>
                 <div class="m-header-sub">
                     <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span>
@@ -268,7 +208,7 @@ if not df.empty:
             </summary>
             <div class="m-content">
                 <div class="m-grid">
-                    <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{color_day}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
+                    <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{color_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
                     <div class="m-item"><span class="m-label">Upside</span><span class="m-value" style="color:{color_upside}">{format_br(row['Upside'], is_pct=True)}</span></div>
                     <div class="m-item"><span class="m-label">Rec.</span><span class="m-value" style="color:#FFF">{row['Recomendação']}</span></div>
                     <div class="m-item"><span class="m-label">Vol (MM)</span><span class="m-value">{format_br(row['Vol (MM)'])}</span></div>
@@ -278,11 +218,7 @@ if not df.empty:
             </div>
         </details>"""
 
-    # Saída Final
-    st.markdown(f'<div class="desktop-view-container">{df_desktop.to_html(escape=False, index=False)}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
     
     time.sleep(refresh_interval)
     st.rerun()
-else:
-    st.warning("Nenhum dado encontrado.")
