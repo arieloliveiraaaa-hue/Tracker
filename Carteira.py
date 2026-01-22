@@ -340,6 +340,26 @@ def display_ticker_key(ticker: str) -> str:
     return ticker.replace(".SA", "")
 
 # =========================================================
+# IBOVESPA HIGHLIGHT (NOVO)
+# =========================================================
+ibov_df = get_stock_data(["^BVSP"])
+if not ibov_df.empty:
+    r = ibov_df.iloc[0]
+    c_ibov = "#00FF95" if r['Hoje %'] > 0 else "#FF4B4B" if r['Hoje %'] < 0 else "#FFFFFF"
+    
+    st.markdown(f"""
+    <div style="
+        display: flex; align-items: center; justify-content: center; gap: 20px;
+        background-color: #0A0A0A; border: 1px solid #333; border-radius: 8px;
+        padding: 12px; margin-bottom: 20px; text-align: center;
+    ">
+        <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 20px; color: #FFF;">IBOV</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; color: #FFF;">{format_br(r['Preço'])} pts</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: {c_ibov}; font-weight: 700;">{format_br(r['Hoje %'], is_pct=True)}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+# =========================================================
 # MENU (PÁGINAS) - SEM RELOAD DE PÁGINA (SEM <a href=...>)
 # =========================================================
 if "page" not in st.session_state:
