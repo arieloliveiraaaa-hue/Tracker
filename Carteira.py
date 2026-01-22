@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Equity Monitor Pro", layout="wide", page_icon="📈")
 
 # =========================================================
-# DESIGN PREMIUM
+# DESIGN PREMIUM (MANTIDO CONFORME ORIGINAL)
 # =========================================================
 st.markdown("""
     <style>
@@ -29,7 +29,6 @@ st.markdown("""
             color: #FFFFFF !important;
             letter-spacing: -4px !important;
             line-height: 1 !important;
-            display: block !important;
         }
 
         .sub-header {
@@ -42,7 +41,6 @@ st.markdown("""
             letter-spacing: 5px !important;
         }
 
-        /* TABELA */
         .desktop-view-container table {
             width: 100% !important;
             border-collapse: collapse !important;
@@ -56,9 +54,8 @@ st.markdown("""
             font-weight: 700 !important;
             text-transform: uppercase !important;
             padding: 20px 10px !important;
-            border-bottom: 2px solid #222 !important;
-            font-family: 'Inter', sans-serif !important;
             text-align: center !important;
+            border-bottom: 2px solid #222 !important;
         }
 
         .desktop-view-container td {
@@ -66,14 +63,14 @@ st.markdown("""
             border-bottom: 1px solid #111 !important;
             font-size: 15px !important;
             color: #D1D1D1 !important;
-            font-family: 'Inter', sans-serif !important;
             text-align: center !important;
+            font-family: 'Inter', sans-serif !important;
         }
 
         .ticker-style { font-weight: 900 !important; color: #FFFFFF !important; }
 
-        /* DESTAQUE LEVE PARA O IBOVESPA */
-        .ibov-highlight-row td {
+        /* DESTAQUE DO IBOVESPA */
+        .ibov-row td {
             background-color: #080808 !important;
             border-top: 1px solid #333 !important;
             border-bottom: 1px solid #333 !important;
@@ -82,7 +79,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LÓGICA DE DADOS
+# DADOS E LÓGICA (REVERTIDO PARA O SEU PADRÃO)
 # =========================================================
 MINHA_COBERTURA = {
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
@@ -97,91 +94,95 @@ MINHA_COBERTURA = {
 }
 
 def format_br(val, is_pct=False, moeda_sym=""):
-    if pd.isna(val) or val == 0 and not is_pct: return "-"
+    if val == "-" or pd.isna(val): return "-"
     formatted = "{:,.2f}".format(val).replace(",", "X").replace(".", ",").replace("X", ".")
     if is_pct: return f"{formatted}%"
     if moeda_sym: return f"{moeda_sym} {formatted}"
     return formatted
 
 def color_pct(val):
-    color = "#00FF95" if val > 0.001 else "#FF4B4B" if val < -0.001 else "#555"
+    if val == "-": return "-"
+    color = "#00FF95" if val > 0 else "#FF4B4B" if val < 0 else "#555"
     return f'<span style="color: {color}; font-family: \'JetBrains Mono\';">{format_br(val, is_pct=True)}</span>'
 
 @st.cache_data(ttl=60)
-def get_monitor_data():
+def get_data():
+    # Inclui o Ibovespa na lista de busca
     tickers = ["^BVSP"] + list(MINHA_COBERTURA.keys())
-    data = yf.download(tickers, period="1y", interval="1d", auto_adjust=True)
-    
-    rows = []
-    for t in tickers:
-        try:
-            hist = data['Close'][t].dropna()
-            price = hist.iloc[-1]
-            prev_price = hist.iloc[-2]
-            
-            # Cálculo de variações
-            hoje_pct = ((price / prev_price) - 1) * 100
-            val_30d = ((price / hist.iloc[-22]) - 1) * 100 if len(hist) > 22 else 0
-            val_6m = ((price / hist.iloc[-126]) - 1) * 100 if len(hist) > 126 else 0
-            val_12m = ((price / hist.iloc[0]) - 1) * 100 if len(hist) > 0 else 0
-            
-            vol = (data['Volume'][t].iloc[-1] / 1_000_000) if t != "^BVSP" else 0
-
-            if t == "^BVSP":
-                rows.append({
-                    "Ticker": "IBOVESPA", "Rec": "-", "Alvo": "-", "Preço": format_br(price),
-                    "Upside": "-", "Hoje": hoje_pct, "30D": val_30d, "6M": val_6m, "12M": val_12m, 
-                    "Vol": "-", "is_ibov": True
-                })
-            else:
-                info = MINHA_COBERTURA[t]
-                upside = ((info['Alvo'] / price) - 1) * 100
-                rows.append({
-                    "Ticker": t.replace(".SA", ""), "Rec": info['Rec'], "Alvo": format_br(info['Alvo'], moeda_sym="R$"),
-                    "Preço": format_br(price, moeda_sym="R$"), "Upside": upside, "Hoje": hoje_pct, 
-                    "30D": val_30d, "6M": val_6m, "12M": val_12m, "Vol": format_br(vol), "is_ibov": False
-                })
-        except: continue
-    return rows
+    df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True)
+    return df
 
 # =========================================================
-# RENDERIZAÇÃO
+# INTERFACE
 # =========================================================
 st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
 st.markdown(f'<div class="sub-header">TERMINAL • {datetime.now().strftime("%d %b %Y")}</div>', unsafe_allow_html=True)
 
-data_rows = get_monitor_data()
+raw_data = get_data()
 
-table_html = """
-<div class="desktop-view-container">
-    <table>
-        <thead>
-            <tr>
-                <th>Ticker</th><th>Rec.</th><th>Alvo</th><th>Preço</th>
-                <th>Upside</th><th>Hoje</th><th>30D</th><th>6M</th><th>12M</th><th>Vol (MM)</th>
+# Construção da Tabela HTML
+table_body = ""
+tickers_to_show = ["^BVSP"] + list(MINHA_COBERTURA.keys())
+
+for t in tickers_to_show:
+    try:
+        hist = raw_data[t]['Close'].dropna()
+        if hist.empty: continue
+        
+        p_atual = hist.iloc[-1]
+        p_ontem = hist.iloc[-2]
+        
+        # Variáveis padrão
+        hoje = ((p_atual / p_ontem) - 1) * 100
+        m1 = ((p_atual / hist.iloc[-22]) - 1) * 100 if len(hist) > 22 else 0
+        m6 = ((p_atual / hist.iloc[-126]) - 1) * 100 if len(hist) > 126 else 0
+        y1 = ((p_atual / hist.iloc[0]) - 1) * 100
+        vol = (raw_data[t]['Volume'].iloc[-1] / 1_000_000)
+        
+        # Lógica específica para o Ibovespa (Destaque)
+        if t == "^BVSP":
+            row_style = 'class="ibov-row"'
+            ticker_name = "IBOVESPA"
+            rec, alvo, upside, moeda, v_mm = "-", "-", "-", "", "-"
+        else:
+            row_style = ""
+            ticker_name = t.replace(".SA", "")
+            rec = MINHA_COBERTURA[t]["Rec"]
+            alvo_val = MINHA_COBERTURA[t]["Alvo"]
+            alvo = format_br(alvo_val, moeda_sym="R$")
+            upside = ((alvo_val / p_atual) - 1) * 100
+            moeda = "R$ "
+            v_mm = format_br(vol)
+
+        table_body += f"""
+            <tr {row_style}>
+                <td><span class="ticker-style">{ticker_name}</span></td>
+                <td>{rec}</td>
+                <td>{alvo}</td>
+                <td>{format_br(p_atual, moeda_sym=moeda)}</td>
+                <td>{color_pct(upside)}</td>
+                <td>{color_pct(hoje)}</td>
+                <td>{color_pct(m1)}</td>
+                <td>{color_pct(m6)}</td>
+                <td>{color_pct(y1)}</td>
+                <td>{v_mm}</td>
             </tr>
-        </thead>
-        <tbody>
-"""
+        """
+    except: continue
 
-for r in data_rows:
-    row_class = 'class="ibov-highlight-row"' if r['is_ibov'] else ""
-    table_html += f"""
-        <tr {row_class}>
-            <td><span class="ticker-style">{r['Ticker']}</span></td>
-            <td>{r['Rec']}</td>
-            <td>{r['Alvo']}</td>
-            <td>{r['Preço']}</td>
-            <td>{color_pct(r['Upside']) if isinstance(r['Upside'], float) else r['Upside']}</td>
-            <td>{color_pct(r['Hoje'])}</td>
-            <td>{color_pct(r['30D'])}</td>
-            <td>{color_pct(r['6M'])}</td>
-            <td>{color_pct(r['12M'])}</td>
-            <td>{r['Vol']}</td>
-        </tr>
-    """
+st.markdown(f"""
+    <div class="desktop-view-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticker</th><th>Rec.</th><th>Alvo</th><th>Preço</th>
+                    <th>Upside</th><th>Hoje</th><th>30D</th><th>6M</th><th>12M</th><th>Vol (MM)</th>
+                </tr>
+            </thead>
+            <tbody>{table_body}</tbody>
+        </table>
+    </div>
+""", unsafe_allow_html=True)
 
-table_html += "</tbody></table></div>"
-st.markdown(table_html, unsafe_allow_html=True)
-
-# Próximo passo: Gostaria que eu adicionasse um gráfico de performance histórica ao clicar em uma linha?
+time.sleep(60)
+st.rerun()
