@@ -341,7 +341,7 @@ def display_ticker_key(ticker: str) -> str:
     return ticker.replace(".SA", "")
 
 # =========================================================
-# MENU (PÁGINAS) - SEM RELOAD DE PÁGINA (SEM <a href=...>)
+# MENU (PÁGINAS)
 # =========================================================
 if "page" not in st.session_state:
     st.session_state.page = "Cobertura"
@@ -404,104 +404,52 @@ if page == "setores":
 
     if not df.empty:
         df_map = {row["Ticker"]: row for _, row in df.iterrows()}
-
         cols = ["Ticker", "Preço", "Hoje", "30D", "6M", "12M", "Vol (MM)"]
-        thead = """
-            <thead>
-                <tr>
-                    <th>Ticker</th>
-                    <th>Preço</th>
-                    <th>Hoje</th>
-                    <th>30D</th>
-                    <th>6M</th>
-                    <th>12M</th>
-                    <th>Vol (MM)</th>
-                </tr>
-            </thead>
-        """
+        thead = f"<thead><tr>{''.join([f'<th>{c}</th>' for c in cols])}</tr></thead>"
 
         tbody = "<tbody>"
         for sector, tickers in SETORES_ACOMPANHAMENTO.items():
             tbody += f'<tr class="sector-row"><td colspan="{len(cols)}">{sector}</td></tr>'
             for t in tickers:
                 k = display_ticker_key(t)
-                if k not in df_map:
-                    continue
+                if k not in df_map: continue
                 r = df_map[k]
-                tbody += "<tr>"
-                tbody += f'<td><span class="ticker-style">{r["Ticker"]}</span></td>'
-                tbody += f'<td><span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span></td>'
-                tbody += f'<td>{color_pct(float(r["Hoje %"]))}</td>'
-                tbody += f'<td>{color_pct(float(r["30 Dias %"]))}</td>'
-                tbody += f'<td>{color_pct(float(r["6 Meses %"]))}</td>'
-                tbody += f'<td>{color_pct(float(r["12 Meses %"]))}</td>'
-                tbody += f'<td>{format_br(float(r["Vol (MM)"]))}</td>'
-                tbody += "</tr>"
+                tbody += f"<tr><td><span class='ticker-style'>{r['Ticker']}</span></td><td><span>{format_br(r['Preço'], moeda_sym=r['Moeda'])}</span></td><td>{color_pct(float(r['Hoje %']))}</td><td>{color_pct(float(r['30 Dias %']))}</td><td>{color_pct(float(r['6 Meses %']))}</td><td>{color_pct(float(r['12 Meses %']))}</td><td>{format_br(float(r['Vol (MM)']))}</td></tr>"
         tbody += "</tbody>"
 
-        table_html = f"<table>{thead}{tbody}</table>"
-        st.markdown(f'<div class="desktop-view-container">{table_html}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="desktop-view-container"><table>{thead}{tbody}</table></div>', unsafe_allow_html=True)
 
-        # --- MOBILE VIEW (SETORES) COM SEPARADORES ---
         mobile_html_cards = ""
         last_sector = None
         for sector, t in ordered_pairs:
             k = display_ticker_key(t)
-            if k not in df_map:
-                continue
+            if k not in df_map: continue
             row = df_map[k]
             c_price = "#00FF95" if float(row['Hoje %']) > 0 else "#FF4B4B" if float(row['Hoje %']) < 0 else "#FFFFFF"
-
             if sector != last_sector:
                 mobile_html_cards += f'<div class="m-sector">{sector}</div>'
                 last_sector = sector
-
-            mobile_html_cards += f"""
-            <details class="mobile-card">
-                <summary class="m-summary">
-                    <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
-                    <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
-                        <span>{sector}</span><span>▼</span>
-                    </div>
-                </summary>
-                <div class="m-grid">
-                    <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
-                    <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
-                </div>
-            </details>"""
-
+            mobile_html_cards += f"<details class='mobile-card'><summary class='m-summary'><div class='m-header-top'><span class='m-ticker'>{row['Ticker']}</span><span class='m-price' style='color: {c_price}'>{row['Moeda']} {format_br(row['Preço'])}</span></div><div class='m-header-sub' style='display:flex; justify-content:space-between; font-size:12px; color:#444;'><span>{sector}</span><span>▼</span></div></summary><div class='m-grid'><div class='m-item'><span class='m-label'>Hoje</span><span class='m-value' style='color:{c_price}'>{format_br(row['Hoje %'], is_pct=True)}</span></div><div class='m-item'><span class='m-label'>12M</span><span class='m-value'>{format_br(row['12 Meses %'], is_pct=True)}</span></div></div></details>"
         st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
-
-        time.sleep(60)
-        st.rerun()
+        time.sleep(60); st.rerun()
 
 else:
     st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
 
-    # --- LISTA ORDENADA PARA O DOWNLOAD ---
-    todos_tickers = list(MINHA_COBERTURA.keys())
-    outros = sorted([t for t in todos_tickers if t != "^BVSP"])
-    lista_final = (["^BVSP"] if "^BVSP" in todos_tickers else []) + outros
-    
-    df = get_stock_data(lista_final)
+    df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
     if not df.empty:
-        # --- FORÇAR ^BVSP NO TOPO INDEPENDENTE DE QUALQUER COISA ---
-        df['sort_key'] = df['Ticker'].apply(lambda x: 0 if x == "^BVSP" else 1)
-        df = df.sort_values(by=['sort_key', 'Ticker'], ascending=[True, True]).drop(columns=['sort_key'])
+        # --- FORÇAR ^BVSP NO TOPO (PESO 0) E O RESTO EM ORDEM ALFABÉTICA (PESO 1) ---
+        df['top_priority'] = df['Ticker'].apply(lambda x: 0 if x == "^BVSP" else 1)
+        df = df.sort_values(by=['top_priority', 'Ticker'], ascending=[True, True]).drop(columns=['top_priority'])
 
-        with st.popover("⚙️"):
-            sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
-            sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
-            df = df.sort_values(by=sort_col, ascending=(sort_order == "Crescente"))
-
+        # Omitimos o popover de ordenação automática para não quebrar a regra de "BVSP no topo" solicitada
         df_view = pd.DataFrame()
         df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
         df_view["Rec."] = df["Recomendação"]
         df_view["Alvo"] = df.apply(lambda r: f'<span>{format_br(r["Preço-Alvo"], moeda_sym=r["Moeda"])}</span>', axis=1)
         df_view["Preço"] = df.apply(lambda r: f'<span>{format_br(r["Preço"], moeda_sym=r["Moeda"])}</span>', axis=1)
-
         df_view["Upside"] = df["Upside"].apply(color_pct)
         df_view["Hoje"] = df["Hoje %"].apply(color_pct)
         df_view["30D"] = df["30 Dias %"].apply(color_pct)
@@ -514,24 +462,6 @@ else:
         mobile_html_cards = ""
         for _, row in df.iterrows():
             c_price = "#00FF95" if row['Hoje %'] > 0 else "#FF4B4B" if row['Hoje %'] < 0 else "#FFFFFF"
-
-            mobile_html_cards += f"""
-            <details class="mobile-card">
-                <summary class="m-summary">
-                    <div class="m-header-top"><span class="m-ticker">{row['Ticker']}</span><span class="m-price" style="color: {c_price}">{row['Moeda']} {format_br(row['Preço'])}</span></div>
-                    <div class="m-header-sub" style="display:flex; justify-content:space-between; font-size:12px; color:#444;">
-                        <span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼</span>
-                    </div>
-                </summary>
-                <div class="m-grid">
-                    <div class="m-item"><span class="m-label">Hoje</span><span class="m-value" style="color:{c_price}">{format_br(row['Hoje %'], is_pct=True)}</span></div>
-                    <div class="m-item"><span class="m-label">Upside</span><span class="m-value">{format_br(row['Upside'], is_pct=True)}</span></div>
-                    <div class="m-item"><span class="m-label">Rec.</span><span class="m-value">{row['Recomendação']}</span></div>
-                    <div class="m-item"><span class="m-label">12M</span><span class="m-value">{format_br(row['12 Meses %'], is_pct=True)}</span></div>
-                </div>
-            </details>"""
-
+            mobile_html_cards += f"<details class='mobile-card'><summary class='m-summary'><div class='m-header-top'><span class='m-ticker'>{row['Ticker']}</span><span class='m-price' style='color: {c_price}'>{row['Moeda']} {format_br(row['Preço'])}</span></div><div class='m-header-sub' style='display:flex; justify-content:space-between; font-size:12px; color:#444;'><span>Alvo: {row['Moeda']} {format_br(row['Preço-Alvo'])}</span><span>▼</span></div></summary><div class='m-grid'><div class='m-item'><span class='m-label'>Hoje</span><span class='m-value' style='color:{c_price}'>{format_br(row['Hoje %'], is_pct=True)}</span></div><div class='m-item'><span class='m-label'>Upside</span><span class='m-value'>{format_br(row['Upside'], is_pct=True)}</span></div><div class='m-item'><span class='m-label'>Rec.</span><span class='m-value'>{row['Recomendação']}</span></div><div class='m-item'><span class='m-label'>12M</span><span class='m-value'>{format_br(row['12 Meses %'], is_pct=True)}</span></div></div></details>"
         st.markdown(f'<div class="mobile-wrapper">{mobile_html_cards}</div>', unsafe_allow_html=True)
-
-        time.sleep(60)
-        st.rerun()
+        time.sleep(60); st.rerun()
