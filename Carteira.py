@@ -187,7 +187,7 @@ st.markdown("""
 # LÓGICA DE DADOS
 # =========================================================
 MINHA_COBERTURA = {
-    "^BVSP": {"Rec": "", "Alvo": ""},
+    "^BVSP": {"Rec": "-", "Alvo": 0},
     "TOTS3.SA": {"Rec": "Compra", "Alvo": 48.00},
     "VIVT3.SA": {"Rec": "Compra", "Alvo": 38.00},
     "CPLE3.SA": {"Rec": "Neutro", "Alvo": 11.00},
