@@ -479,9 +479,19 @@ else:
     st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
 
-    df = get_stock_data(list(MINHA_COBERTURA.keys()))
+    # --- LÓGICA DE ORDENAÇÃO: ^BVSP NO TOPO, O RESTO ALFABÉTICO ---
+    todos_os_tickers = list(MINHA_COBERTURA.keys())
+    outros_tickers = sorted([t for t in todos_os_tickers if t != "^BVSP"])
+    tickers_ordenados = (["^BVSP"] if "^BVSP" in todos_os_tickers else []) + outros_tickers
+    
+    df = get_stock_data(tickers_ordenados)
 
     if not df.empty:
+        # Define a ordem categórica para manter o ^BVSP no topo mesmo após sorteios
+        df['Ticker_Full'] = df['Ticker'].apply(lambda x: x if x == "^BVSP" else x + ".SA")
+        df['Ticker_Full'] = pd.Categorical(df['Ticker_Full'], categories=tickers_ordenados, ordered=True)
+        df = df.sort_values('Ticker_Full')
+
         with st.popover("⚙️"):
             sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
             sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True)
