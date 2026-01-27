@@ -440,11 +440,15 @@ else:
     df = get_stock_data(list(MINHA_COBERTURA.keys()))
 
     if not df.empty:
-        # --- FORÇAR ^BVSP NO TOPO (PESO 0) E O RESTO EM ORDEM ALFABÉTICA (PESO 1) ---
+        # ==============================================================================
+        # LÓGICA DE ORDENAÇÃO FORÇADA: ^BVSP NO TOPO, RESTO ALFABÉTICO
+        # 1. Cria 'top_priority': 0 se for ^BVSP, 1 caso contrário.
+        # 2. Ordena por 'top_priority' (0 vem antes) e depois por 'Ticker' (A-Z).
+        # ==============================================================================
         df['top_priority'] = df['Ticker'].apply(lambda x: 0 if x == "^BVSP" else 1)
         df = df.sort_values(by=['top_priority', 'Ticker'], ascending=[True, True]).drop(columns=['top_priority'])
 
-        # Omitimos o popover de ordenação automática para não quebrar a regra de "BVSP no topo" solicitada
+        # Omitimos o popover de ordenação automática para não quebrar a regra de "BVSP no topo"
         df_view = pd.DataFrame()
         df_view["Ticker"] = df["Ticker"].apply(lambda x: f'<span class="ticker-style">{x}</span>')
         df_view["Rec."] = df["Recomendação"]
