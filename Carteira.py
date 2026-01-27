@@ -479,18 +479,17 @@ else:
     st.markdown('<span class="main-title">EQUITY MONITOR</span>', unsafe_allow_html=True)
     st.markdown(f'<span class="sub-header">TERMINAL DE DADOS • {datetime.now().strftime("%d %b %Y | %H:%M:%S")}</span>', unsafe_allow_html=True)
 
-    # --- LÓGICA DE ORDENAÇÃO: ^BVSP NO TOPO, O RESTO ALFABÉTICO ---
-    todos_os_tickers = list(MINHA_COBERTURA.keys())
-    outros_tickers = sorted([t for t in todos_os_tickers if t != "^BVSP"])
-    tickers_ordenados = (["^BVSP"] if "^BVSP" in todos_os_tickers else []) + outros_tickers
+    # --- LISTA ORDENADA PARA O DOWNLOAD ---
+    todos_tickers = list(MINHA_COBERTURA.keys())
+    outros = sorted([t for t in todos_tickers if t != "^BVSP"])
+    lista_final = (["^BVSP"] if "^BVSP" in todos_tickers else []) + outros
     
-    df = get_stock_data(tickers_ordenados)
+    df = get_stock_data(lista_final)
 
     if not df.empty:
-        # Define a ordem categórica para manter o ^BVSP no topo mesmo após sorteios
-        df['Ticker_Full'] = df['Ticker'].apply(lambda x: x if x == "^BVSP" else x + ".SA")
-        df['Ticker_Full'] = pd.Categorical(df['Ticker_Full'], categories=tickers_ordenados, ordered=True)
-        df = df.sort_values('Ticker_Full')
+        # --- FORÇAR ^BVSP NO TOPO INDEPENDENTE DE QUALQUER COISA ---
+        df['sort_key'] = df['Ticker'].apply(lambda x: 0 if x == "^BVSP" else 1)
+        df = df.sort_values(by=['sort_key', 'Ticker'], ascending=[True, True]).drop(columns=['sort_key'])
 
         with st.popover("⚙️"):
             sort_col = st.selectbox("Ordenar por:", df.columns, index=0)
