@@ -195,8 +195,8 @@ MINHA_COBERTURA = {
     "ENGI3.SA": {"Rec": "Compra", "Alvo": 46.00},
     "TAEE11.SA": {"Rec": "Compra", "Alvo": 34.00},
     "EQTL3.SA": {"Rec": "Compra", "Alvo": 35.00},
-    "RDOR3.SA": {"Rec": "Compra", "Alvo": 34.00},
-    "HAPV3.SA": {"Rec": "Compra", "Alvo": 64.80},
+    "RDOR3.SA": {"Rec": "Compra", "Alvo": 52.00},
+    "HAPV3.SA": {"Rec": "Compra", "Alvo": 24.00},
 }
 
 SETORES_ACOMPANHAMENTO = {
