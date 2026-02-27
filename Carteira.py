@@ -192,7 +192,7 @@ MINHA_COBERTURA = {
     "VIVT3.SA": {"Rec": "Compra", "Alvo": 38.00},
     "CPLE3.SA": {"Rec": "Neutro", "Alvo": 11.00},
     "AXIA3.SA": {"Rec": "Compra", "Alvo": 59.00},
-    "ENGI3.SA": {"Rec": "Compra", "Alvo": 46.00},
+    "EGIE3.SA": {"Rec": "Compra", "Alvo": 46.00},
     "TAEE11.SA": {"Rec": "Compra", "Alvo": 34.00},
     "EQTL3.SA": {"Rec": "Compra", "Alvo": 35.00},
     "RDOR3.SA": {"Rec": "Compra", "Alvo": 52.00},
